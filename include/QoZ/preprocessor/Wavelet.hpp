@@ -152,7 +152,7 @@ namespace QoZ {
 
            // QoZ::Timer temptimer(true);
             std::string HOME = getenv("HOME");;
-            py::module_::import("sys").attr("path").attr("append")(HOME + "/QoZ/include/QoZ/preprocessor");
+            py::module_::import("sys").attr("path").attr("append")(HOME + "/FAZ/include/QoZ/preprocessor");
             auto pyModule=py::module_::import("pywt_wrapper");
             //if(conf.verbose)
            //     temptimer.stop("Pybind import");
