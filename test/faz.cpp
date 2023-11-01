@@ -37,9 +37,9 @@ void usage() {
     printf("* data type:\n");
     printf("	-f: single precision (float type)\n");
     printf("	-d: double precision (double type)\n");
-    printf("	-I <width>: integer type (width = 32 or 64)\n");
+    //printf("	-I <width>: integer type (width = 32 or 64)\n");
     printf("* configuration file: \n");
-    printf("	-c <configuration file> : configuration file qoz.config\n");
+    printf("	-c <configuration file> : configuration file faz.config\n");
     printf("* error control: (the error control parameters here will overwrite the setting in sz.config)\n");
     printf("	-M <error control mode> <error bound (optional)> \n");
     printf("	error control mode as follows: \n");
@@ -73,7 +73,7 @@ void usage() {
     printf("	-4 <nx> <ny> <nz> <np>: dimensions for 4D data such as data[np][nz][ny][nx] \n");
     printf("* examples: \n");
     printf("	faz -f -i test.dat    -z test.dat.faz     -3 8 8 128 -M ABS 1e-3 \n");
-    printf("	faz -f -z test.dat.qoz -o test.dat.faz.out -3 8 8 128 -M REL 1e-3 -a \n");
+    printf("	faz -f -z test.dat.faz -o test.dat.faz.out -3 8 8 128 -M REL 1e-3 -a \n");
     printf("	faz -f -i test.dat    -o test.dat.faz.out -3 8 8 128 -M ABS_AND_REL -A 1 -R 1e-3 -a \n");
     printf("	faz -f -i test.dat    -o test.dat.faz.out -3 8 8 128 -c faz.config \n");
     printf("	faz -f -i test.dat    -o test.dat.faz.out -3 8 8 128 -c faz.config -M ABS 1e-3 -a\n");
@@ -86,7 +86,7 @@ void usage_sz2() {
     printf("Options:\n");
     printf("* operation type:\n");
     printf("	-z <compressed file>: the compression operation with an optionally specified output file.\n");
-    printf("                          (the compressed file will be named as <input_file>.qoz if not specified)\n");
+    printf("                          (the compressed file will be named as <input_file>.faz if not specified)\n");
     printf("	-x <decompressed file>: the decompression operation with an optionally specified output file\n");
     printf("                      (the decompressed file will be named as <cmpred_file>.out if not specified)\n");
 //    printf("	-p: print meta data (configuration info)\n");
@@ -96,8 +96,8 @@ void usage_sz2() {
     printf("	-f: single precision (float type)\n");
     printf("	-d: double precision (double type)\n");
     printf("* configuration file: \n");
-    printf("	-c <configuration file> : configuration file qoz.config\n");
-    printf("* error control: (the error control parameters here will overwrite the setting in qoz.config)\n");
+    printf("	-c <configuration file> : configuration file faz.config\n");
+    printf("* error control: (the error control parameters here will overwrite the setting in faz.config)\n");
     printf("	-M <error bound mode> : 10 options as follows. \n");
     printf("		ABS (absolute error bound)\n");
     printf("		REL (value range based error bound, so a.k.a., VR_REL)\n");
