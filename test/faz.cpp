@@ -55,8 +55,8 @@ void usage() {
 //    printf("		-P <point-wise relative error bound>: specifying point-wise relative error bound\n");
     printf("		-S <PSNR>: specifying PSNR\n");
     printf("		-N <normErr>: specifying normErr\n");
-    printf("    -q: activate QoZ features (deactivated in default)\n");
-    printf("    -F: activate FAZ features (deactivated in default)\n");
+    printf("    -q: use QoZ mode (deactivated in default)\n");
+    printf("    -F <1/0>: activate FAZ features or not (activated in default)\n");
     printf("    -T <tuning target> \n");
     printf("    tuning targets as follows: \n");
     printf("        PSNR (peak signal-to-noise ratio)\n");
@@ -72,11 +72,11 @@ void usage() {
     printf("	-3 <nx> <ny> <nz> : dimensions for 3D data such as data[nz][ny][nx] \n");
     printf("	-4 <nx> <ny> <nz> <np>: dimensions for 4D data such as data[np][nz][ny][nx] \n");
     printf("* examples: \n");
-    printf("	faz -F -f -i test.dat    -z test.dat.qoz     -3 8 8 128 -M ABS 1e-3 \n");
-    printf("	faz -F -f -z test.dat.qoz -o test.dat.qoz.out -3 8 8 128 -M REL 1e-3 -a \n");
-    printf("	faz -F -f -i test.dat    -o test.dat.qoz.out -3 8 8 128 -M ABS_AND_REL -A 1 -R 1e-3 -a \n");
-    printf("	faz -F -f -i test.dat    -o test.dat.qoz.out -3 8 8 128 -c qoz.config \n");
-    printf("	faz -F -f -i test.dat    -o test.dat.qoz.out -3 8 8 128 -c qoz.config -M ABS 1e-3 -a\n");
+    printf("	faz -f -i test.dat    -z test.dat.faz     -3 8 8 128 -M ABS 1e-3 \n");
+    printf("	faz -f -z test.dat.qoz -o test.dat.faz.out -3 8 8 128 -M REL 1e-3 -a \n");
+    printf("	faz -f -i test.dat    -o test.dat.faz.out -3 8 8 128 -M ABS_AND_REL -A 1 -R 1e-3 -a \n");
+    printf("	faz -f -i test.dat    -o test.dat.faz.out -3 8 8 128 -c faz.config \n");
+    printf("	faz -f -i test.dat    -o test.dat.faz.out -3 8 8 128 -c faz.config -M ABS 1e-3 -a\n");
     exit(0);
 }
 

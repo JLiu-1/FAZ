@@ -31,7 +31,7 @@ Then, you'll find all the executables in [INSTALL_DIR]/bin and header files in [
 ##Command line executable Usage
 
 You can use the executable 'faz' command to do the compression/decompression. Just run "faz" command without any argument to check the instructions for its usage.
-faz command is quite like sz3 command, please add the -F argument to activate the FAZ features with default hyper-parameters or customize those hyper-parameters via a config file (not adding -F will make faz fall back to sz3).
+faz command is quite like sz3 command. You can use the -F argument to activate/deactivate the FAZ features with default hyper-parameters (activated in default) or customize those hyper-parameters via a config file.
 
 
 
