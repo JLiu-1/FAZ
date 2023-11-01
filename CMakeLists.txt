@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.13)
-project(FAZ VERSION 0.1.0.0)
+project(QoZ VERSION 0.1.0.0)
 include(GNUInstallDirs)
 include(CTest)
 
@@ -38,13 +38,13 @@ option(QoZ_USE_BUNDLED_ZSTD "prefer the bundled version of Zstd" OFF)
 option(QoZ_DEBUG_TIMINGS "print debug timing information" ON)
 
 if(FAZ_DEBUG_TIMINGS)
-  target_compile_definitions(${PROJECT_NAME} INTERFACE QoZ_DEBUG_TIMINGS=1)
+  target_compile_definitions(${PROJECT_NAME} INTERFACE FAZ_DEBUG_TIMINGS=1)
 else()
-  target_compile_definitions(${PROJECT_NAME} INTERFACE QoZ_DEBUG_TIMINGS=0)
+  target_compile_definitions(${PROJECT_NAME} INTERFACE FAZ_DEBUG_TIMINGS=0)
 endif()
 
 pkg_search_module(ZSTD IMPORTED_TARGET libzstd)
-if(ZSTD_FOUND AND NOT QoZ_USE_BUNDLED_ZSTD)
+if(ZSTD_FOUND AND NOT FAZ_USE_BUNDLED_ZSTD)
   message("Zstd found.")
   target_link_libraries(${PROJECT_NAME} INTERFACE PkgConfig::ZSTD)
 else()
