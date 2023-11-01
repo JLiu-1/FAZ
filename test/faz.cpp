@@ -105,7 +105,8 @@ void usage_sz2() {
     printf("		ABS_OR_REL (using max{ABS, REL})\n");
     printf("		PSNR (peak signal-to-noise ratio)\n");
     printf("		NORM (norm2 error : sqrt(sum(xi-xi')^2)\n");
-    printf("    -F Activate FAZ configurations\n");
+    printf("    -q: use QoZ mode (deactivated in default)\n");
+    printf("    -F <1/0>: activate FAZ features or not (activated in default)\n");
 //    printf("		PW_REL (point-wise relative error bound)\n");
     printf("	-A <absolute error bound>: specifying absolute error bound\n");
     printf("	-R <value_range based relative error bound>: specifying relative error bound\n");
@@ -127,13 +128,13 @@ void usage_sz2() {
     printf("* print compression results: \n");
     printf("	-a : print compression results such as distortions\n");
     printf("* examples: \n");
-    printf("	qoz -z -f -c qoz.config -i testdata/x86/testfloat_8_8_128.dat -3 8 8 128\n");
-    printf("	qoz -z -f -c qoz.config -M ABS -A 1E-3 -i testdata/x86/testfloat_8_8_128.dat -3 8 8 128\n");
-    printf("	qoz -x -f -s testdata/x86/testfloat_8_8_128.dat.qoz -3 8 8 128\n");
-    printf("	qoz -x -f -s testdata/x86/testfloat_8_8_128.dat.qoz -i testdata/x86/testfloat_8_8_128.dat -3 8 8 128 -a\n");
-    printf("	qoz -z -d -c qoz.config -i testdata/x86/testdouble_8_8_128.dat -3 8 8 128\n");
-    printf("	qoz -x -d -s testdata/x86/testdouble_8_8_128.dat.qoz -3 8 8 128\n");
-    printf("	qoz -p -s testdata/x86/testdouble_8_8_128.dat.qoz\n");
+    printf("	faz -z -f -c faz.config -i testdata/x86/testfloat_8_8_128.dat -3 8 8 128\n");
+    printf("	faz -z -f -c faz.config -M ABS -A 1E-3 -i testdata/x86/testfloat_8_8_128.dat -3 8 8 128\n");
+    printf("	faz -x -f -s testdata/x86/testfloat_8_8_128.dat.faz -3 8 8 128\n");
+    printf("	faz -x -f -s testdata/x86/testfloat_8_8_128.dat.faz -i testdata/x86/testfloat_8_8_128.dat -3 8 8 128 -a\n");
+    printf("	faz -z -d -c faz.config -i testdata/x86/testdouble_8_8_128.dat -3 8 8 128\n");
+    printf("	faz -x -d -s testdata/x86/testdouble_8_8_128.dat.faz -3 8 8 128\n");
+    printf("	faz -p -s testdata/x86/testdouble_8_8_128.dat.faz\n");
     exit(0);
 }
 
@@ -150,7 +151,7 @@ void compress(char *inPath, char *cmpPath, QoZ::Config &conf) {//conf changed to
 
     char outputFilePath[1024];
     if (cmpPath == nullptr) {
-        sprintf(outputFilePath, "%s.qoz", inPath);
+        sprintf(outputFilePath, "%s.faz", inPath);
     } else {
         strcpy(outputFilePath, cmpPath);
     }
@@ -440,7 +441,7 @@ int main(int argc, char *argv[]) {
     if (inPath != nullptr && cmpPath == nullptr && decPath != nullptr) {
         compression = true;
         decompression = true;
-        sprintf(cmpPathTmp, "%s.qoz.tmp", inPath);
+        sprintf(cmpPathTmp, "%s.faz.tmp", inPath);
         cmpPath = cmpPathTmp;
         delCmpPath = true;
     }
