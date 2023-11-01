@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.13)
-project(QoZ VERSION 0.1.0.0)
+project(FAZ VERSION 0.1.0.0)
 include(GNUInstallDirs)
 include(CTest)
 
@@ -37,7 +37,7 @@ target_link_libraries(${PROJECT_NAME} INTERFACE OpenMP::OpenMP_CXX)
 option(QoZ_USE_BUNDLED_ZSTD "prefer the bundled version of Zstd" OFF)
 option(QoZ_DEBUG_TIMINGS "print debug timing information" ON)
 
-if(QoZ_DEBUG_TIMINGS)
+if(FAZ_DEBUG_TIMINGS)
   target_compile_definitions(${PROJECT_NAME} INTERFACE QoZ_DEBUG_TIMINGS=1)
 else()
   target_compile_definitions(${PROJECT_NAME} INTERFACE QoZ_DEBUG_TIMINGS=0)
