@@ -13,6 +13,7 @@ Please Installing the following dependencies:
 * Python >= 3.6
 * numpy 
 * PyWavelets
+* pybind 11
 
 ## 3rd party libraries/tools
 
