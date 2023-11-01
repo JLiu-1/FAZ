@@ -237,7 +237,7 @@ int main(int argc, char *argv[]) {
 
     bool sz2mode = false;
     bool qoz=false;
-    bool faz=false;
+    bool faz=true;
     bool testLorenzo=false;
 
     size_t r4 = 0;
@@ -324,7 +324,11 @@ int main(int argc, char *argv[]) {
                 qoz = true;
                 break;
             case 'F':
-                faz = true;
+                if (++i == argc || sscanf(argv[i], "%d", &faz) != 1) {
+                    usage();
+                }
+
+
                 break;
             case 'l':
                 testLorenzo = true;
