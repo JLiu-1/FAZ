@@ -16,9 +16,7 @@
 #include <string>
 #include <vector>
 
-#ifndef USE_VANILLA_CONFIG
-#include "SperrConfig.h"
-#endif
+
 
 #include <algorithm>
 #include <cassert>
