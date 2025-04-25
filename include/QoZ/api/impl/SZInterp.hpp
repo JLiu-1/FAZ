@@ -22,9 +22,9 @@
 #include "QoZ/api/impl/SZLorenzoReg.hpp"
 
 #include "QoZ/sperr/SPERR3D_OMP_C.h"
-#include "QoZ/sperr/SPERR2D_Compressor.h"
+#include "QoZ/sperr/SPECK2D_FLT.h"
 #include "QoZ/sperr/SPERR3D_OMP_D.h"
-#include "QoZ/sperr/SPERR2D_Decompressor.h"
+#include "QoZ/sperr/sperr_helper.h"
 
 #include <pybind11/embed.h>
 #include <pybind11/numpy.h>
@@ -83,23 +83,30 @@ char *SPERR_Compress(QoZ::Config &conf, T *data, size_t &outSize){//only support
     assert(N==2 or N==3);
     if(N==3){
         
-        SPERR3D_OMP_C compressor;
-        compressor.set_num_threads(1);
-        compressor.set_eb_coeff(conf.wavelet_rel_coeff);
+        auto compressor = std::make_unique<sperr::SPERR3D_OMP_C>();
+        compressor->set_num_threads(1);
+        compressor->set_eb_coeff(conf.wavelet_rel_coeff);
         if(conf.wavelet!=1)
-            compressor.set_skip_wave(true);
+            compressor->set_skip_wave(true);
         auto rtn = sperr::RTNType::Good;
           
         auto chunks = std::vector<size_t>{1024,1024,1024};//ori 256^3, to tell the truth this is not large enough for scale but I just keep it, maybe set it large later.
+        compressor->set_dims_and_chunks(conf.dims, chunks);
+        /*
         if (std::is_same<T, double>::value)
             rtn = compressor.copy_data<double>(reinterpret_cast<const double*>(data), conf.num,
                                     {conf.dims[2], conf.dims[1], conf.dims[0]}, {chunks[0], chunks[1], chunks[2]});
         else
             rtn = compressor.copy_data<float>(reinterpret_cast<const float*>(data), conf.num,
                                     {conf.dims[2], conf.dims[1], conf.dims[0]}, {chunks[0], chunks[1], chunks[2]});
-        compressor.set_target_pwe(conf.absErrorBound);
-        rtn = compressor.compress();
-        auto stream = compressor.get_encoded_bitstream();
+        compressor.set_tolerance(conf.absErrorBound);*/
+        if (std::is_same<T, double>::value)
+            compressor->compress(reinterpret_cast<const float*>(data), conf.num);
+        else
+            compressor->compress(reinterpret_cast<const double*>(data), conf.num);
+        
+        auto stream = compressor->get_encoded_bitstream();
+        compressor.reset()
             
         char * outData=new char[stream.size()+conf.size_est()];
         outSize=stream.size();
@@ -109,29 +116,47 @@ char *SPERR_Compress(QoZ::Config &conf, T *data, size_t &outSize){//only support
         return outData;
     }
     else{
-        SPERR2D_Compressor compressor;
-        compressor.set_eb_coeff(conf.wavelet_rel_coeff);
+        //SPERR2D_Compressor compressor;
+
+        auto compressor = std::make_unique<sperr::SPECK2D_FLT>();
+        compressor->set_eb_coeff(conf.wavelet_rel_coeff);
         if(conf.wavelet!=1)
-            compressor.set_skip_wave(true);
+            compressor->set_skip_wave(true);
         auto rtn = sperr::RTNType::Good;
         //auto chunks = std::vector<size_t>{1024,1024,1024};//ori 256^3, to tell the truth this is not large enough for scale but I just keep it, maybe set it large later.
+        const auto sperr_dims = sperr::dims_type{conf.dims[0], conf.dims[1], 1ul};
+        compressor->set_dims(sperr_dims);
+
+
         if (std::is_same<T, double>::value)
-            rtn = compressor.copy_data<double>(reinterpret_cast<const double*>(data), conf.num,
-                                    {conf.dims[1], conf.dims[0], 1});
+            rtn = compressor->copy_data<double>(reinterpret_cast<const double*>(data), conf.num,);
         else
-            rtn = compressor.copy_data<float>(reinterpret_cast<const float*>(data), conf.num,
-                                    {conf.dims[1], conf.dims[0], 1});
+            rtn = compressor->copy_data<float>(reinterpret_cast<const float*>(data), conf.num,);
         if(rtn!=sperr::RTNType::Good){
             std::cerr << "Copy error."<< std::endl;
             return NULL;
         }
-        compressor.set_target_pwe(conf.absErrorBound);
-        rtn = compressor.compress();
+        compressor->set_tolerance(conf.absErrorBound);
+        rtn = compressor->compress();
         if(rtn!=sperr::RTNType::Good){
             std::cerr << "Compression error."<< std::endl;
             return NULL;
         }
-        auto stream = compressor.view_encoded_bitstream();
+        const auto header_size = 10ul;
+        auto stream = sperr::vec8_type(header_size);
+        stream[0] = static_cast<uint8_t>(0);
+        const auto b8 = std::array{false,  // not a portion
+                                   false,  // 2D
+                                   std::is_same<T, float>::value,
+                                   false,   // unused
+                                   false,   // unused
+                                   false,   // unused
+                                   false,   // unused
+                                   false};  // unused
+        stream[1] = sperr::pack_8_booleans(b8);
+        std::memcpy(stream.data() + 2, conf.dims.data(), sizeof(size_t) * N);
+        compressor->append_encoded_bitstream(stream);
+        compressor.reset();
             
         char * outData=new char[stream.size()+conf.size_est()];
         outSize=stream.size();
@@ -149,52 +174,64 @@ void SPERR_Decompress(char *cmpData, size_t cmpSize, T *decData){//only supports
     
     std::vector<uint8_t> in_stream(cmpData,cmpData+cmpSize);
     if(N==3){
-        SPERR3D_OMP_D decompressor;
+        auto decompressor = std::make_unique<sperr::SPERR3D_OMP_D>();
       
-        decompressor.set_num_threads(1);
-        if (decompressor.use_bitstream(in_stream.data(), in_stream.size()) != sperr::RTNType::Good) {
+        decompressor->set_num_threads(1);
+        if (decompressor->use_bitstream(in_stream.data(), in_stream.size()) != sperr::RTNType::Good) {
             std::cerr << "Read compressed file error: "<< std::endl;
             return;
         }
 
-        if (decompressor.decompress(in_stream.data()) != sperr::RTNType::Good) {
+        if (decompressor->decompress(in_stream.data()) != sperr::RTNType::Good) {
             std::cerr << "Decompression failed!" << std::endl;
             return ;
         }
        
         in_stream.clear();
         in_stream.shrink_to_fit();
+        const auto outputd = decompressor->release_decoded_data();
+        decompressor.reset();
         if (std::is_same<T, double>::value){
-            const auto vol = decompressor.get_data<double>();
-            memcpy(decData,vol.data(),sizeof(T)*vol.size());//maybe not efficient
+            
+            memcpy(decData,outputd.data(),sizeof(T)*outputd.size());//maybe not efficient
         }
         else{
-            const auto vol = decompressor.get_data<float>();
-            memcpy(decData,vol.data(),sizeof(T)*vol.size());//maybe not efficient
+            auto outputf = sperr::vecf_type(buf.size());
+            std::copy(outputd.cbegin(), outputd.cend(), outputf.begin());
+            memcpy(decData,outputf.data(),sizeof(T)*outputf.size());//maybe not efficient
         }
     }
     else{
-        SPERR2D_Decompressor decompressor;
-      
-        if (decompressor.use_bitstream(in_stream.data(), in_stream.size()) != sperr::RTNType::Good) {
+        //SPERR2D_Decompressor decompressor;
+        const auto header_size = 10ul;
+        auto decompressor = std::make_unique<sperr::SPECK2D_FLT>();
+        auto dim2d = std::array<uint32_t, 2>{0, 0};
+        std::memcpy(dim2d.data(), in_stream.data() + 2, sizeof(dim2d));
+        const auto sperr_dims = sperr::dims_type{dim2d[0], dim2d[1], 1ul};
+        decompressor.set_dims(sperr_dims);
+        if (decompressor->use_bitstream(in_stream.data() + header_len, in_stream.size() - header_len) != sperr::RTNType::Good) {
             std::cerr << "Read compressed file error: "<< std::endl;
             return;
         }
 
-        if (decompressor.decompress() != sperr::RTNType::Good) {
+        if (decompressor->decompress(false) != sperr::RTNType::Good) {
             std::cerr << "Decompression failed!" << std::endl;
             return ;
         }
        
         in_stream.clear();
         in_stream.shrink_to_fit();
+        const auto outputd = decompressor.release_decoded_data();
+        decompressor.reset();
+        
         if (std::is_same<T, double>::value){
-            const auto vol = decompressor.get_data<double>();
-            memcpy(decData,vol.data(),sizeof(T)*vol.size());//maybe not efficient
+            
+            memcpy(decData,outputd.data(),sizeof(T)*outputd.size());//maybe not efficient
         }
         else{
-            const auto vol = decompressor.get_data<float>();
-            memcpy(decData,vol.data(),sizeof(T)*vol.size());//maybe not efficient
+            auto outputf = sperr::vecf_type(buf.size());
+            std::copy(outputd.cbegin(), outputd.cend(), outputf.begin());
+            memcpy(decData,outputf.data(),sizeof(T)*outputf.size());//maybe not efficient
         }
     }
 }

@@ -12,14 +12,9 @@
 #include <iterator>
 #include <limits>
 #include <memory>
-#include <optional>
 #include <string>
+#include <utility>  // std::pair
 #include <vector>
-
-#ifndef USE_VANILLA_CONFIG
-#include "SperrConfig.h"
-#endif
-
 #include <algorithm>
 #include <cassert>
 #include <cmath>
@@ -30,81 +25,63 @@
 #ifdef USE_OMP
 #include <omp.h>
 #endif
-
+//#ifndef USE_VANILLA_CONFIG
+//#include "SperrConfig.h"
+//#endif
 
 namespace sperr {
 
 using std::size_t;  // Seems most appropriate
 
+// Shortcut for the maximum values
+constexpr auto max_size = std::numeric_limits<size_t>::max();
+constexpr auto max_d = std::numeric_limits<double>::max();
+
 //
 // A few shortcuts
 //
-template <typename T>
-using vec_type = std::vector<T>;
-using vecd_type = vec_type<double>;
-using vecf_type = vec_type<float>;
-using vec8_type = vec_type<uint8_t>;
+using vecd_type = std::vector<double>;
+using vec8_type = std::vector<uint8_t>;
 using dims_type = std::array<size_t, 3>;
 
 //
 // Helper classes
 //
-enum class SigType : unsigned char { Insig, Sig, Dunno, Garbage };
+enum class SigType : unsigned char { Insig, Sig, NewlySig, Dunno, Garbage };
 
-enum class UINTType : unsigned char { UINT8, UINT16, UINT32, UINT64 };
+enum class SetType : unsigned char { TypeS, TypeI, Garbage };
 
-enum class CompMode : unsigned char {
-  PSNR,
-  PWE,
-  Rate,
-#ifdef EXPERIMENTING
-  DirectQ,
-#endif
-  Unknown
-};
-
+// Return Type
 enum class RTNType {
   Good = 0,
-  WrongLength,
+  WrongDims,
+  BitstreamWrongLen,
   IOError,
+  InvalidParam,
+  QzLevelTooBig,  // a very specific type of invalid param
+  EmptyStream,    // a condition but not sure if it's an error
   BitBudgetMet,
   VersionMismatch,
+  ZSTDMismatch,
+  ZSTDError,
   SliceVolumeMismatch,
+  QzModeMismatch,
+  SetBPPBeforeDims,
+  DataRangeNotSet,
   CompModeUnknown,
-  FE_Invalid,  // floating point exception: FE_INVALID
+  CustomFilterMissing,
+  CustomFilterError,
   Error
 };
+
+// Compression Mode
+enum class CompMode { FixedSize, FixedQz, FixedPSNR, FixedPWE, Unknown };
 
 //
 // Helper functions
 //
 // Given a certain length, how many transforms to be performed?
 auto num_of_xforms(size_t len) -> size_t;
-
-// Given a 3D dimension, tell if it can use dyadic decomposition, or wavelet-packet only.
-//    I.e., will the dimension result in the same levels of wavelet decomposition in 3 directions.
-//    If dyadic decomposition can be used, it returns the number of decomposition levels.
-//    Otherwise, it returns an empty optional.
-//    For 1D or 2D dimensions, it always returns an empty optional.
-auto can_use_dyadic(dims_type) -> std::optional<size_t>;
-
-// Given the native resolution of either a 3D volume or 2D slice, it decides if and how many
-//    coarsened resolutions are available.
-//    If multi-resolution is not supported, then it returns an empty vector.
-//    If multi-resolution is supported, then it returns the coarsened resolutions.
-//    Note 1: this function assumes a single chunk.
-//    Note 2: it's UB if `dim` is a 1D array.
-auto coarsened_resolutions(dims_type dim) -> std::vector<dims_type>;
-
-// Given the native resolution and preferred chunk size of a 3D volume, it decides if and how many
-//    coarsened resolutions are available.
-//    If multi-resolution is not supported, then it returns an empty vector.
-//    If multi-resolution is supported, then it returns the coarsened resolutions.
-//    Note1 : for the multi-chunk volume to support multi-resolution,
-//            1) the volume dimension has to be perfectly divisible by the chunk dimension, and
-//            2) the chunk dimension has to support multi-resolution.
-//    Note 2: it's UB if `vol` is a 1D array or 2D slice.
-auto coarsened_resolutions(dims_type vol, dims_type chunk) -> std::vector<dims_type>;
 
 // How many partition operation could we perform given a length?
 // Length 0 and 1 can do 0 partitions; len=2 can do 1; len=3 can do 2, len=4 can
@@ -123,49 +100,42 @@ auto calc_approx_detail_len(size_t orig_len, size_t lev) -> std::array<size_t, 2
 // start writing/reading the char array.
 //
 // Note 1: unpack_booleans() takes a raw pointer because it accesses memory
-//         provided by others, and others most likely provide it by raw pointers.
+// provided by others, and others most likely provide it by raw pointers.
 // Note 2: these two methods only work on little endian machines.
 // Note 3: the caller should have already allocated enough space for `dest`.
-auto pack_booleans(vec8_type& dst, const std::vector<bool>& src, size_t dest_offset = 0) -> RTNType;
+auto pack_booleans(std::vector<uint8_t>& dest, const std::vector<bool>& src, size_t dest_offset = 0)
+    -> RTNType;
 auto unpack_booleans(std::vector<bool>& dest,
                      const void* src,
                      size_t src_len,
                      size_t src_offset = 0) -> RTNType;
 
 // Pack and unpack exactly 8 booleans to/from a single byte
-// Note 1: memory for the 8 booleans should already be allocated!
-// Note 2: these two methods only work on little endian machines.
+// Note: memory for the 8 booleans should already be allocated!
+// Note: these two methods only work on little endian machines.
 auto pack_8_booleans(std::array<bool, 8>) -> uint8_t;
 auto unpack_8_booleans(uint8_t) -> std::array<bool, 8>;
 
 // Read from and write to a file
 // Note: not using references for `filename` to allow a c-style string literal to be passed in.
 auto write_n_bytes(std::string filename, size_t n_bytes, const void* buffer) -> RTNType;
-auto read_n_bytes(std::string filename, size_t n_bytes) -> vec8_type;
 template <typename T>
-auto read_whole_file(std::string filename) -> vec_type<T>;
+auto read_whole_file(std::string filename) -> std::vector<T>;
 
-// Read sections of a file (extract sections from a memory buffer), and append those sections
-//    to the end of `dst`. The read from file version avoids reading not-requested sections.
-//    The sections are defined by pairs of offsets and lengths, both in number of bytes.
-auto read_sections(std::string filename,
-                   const std::vector<size_t>& sections,
-                   vec8_type& dst) -> RTNType;
-auto extract_sections(const void* buf,
-                      size_t buf_len,
-                      const std::vector<size_t>& sections,
-                      vec8_type& dst) -> RTNType;
+// Upon success, it returns a vector of size `n_bytes`.
+// Otherwise, it returns an empty vector.
+auto read_n_bytes(std::string filename, size_t n_bytes) -> std::vector<uint8_t>;
 
 // Calculate a suite of statistics.
-//    Note that arr1 is considered as the ground truth array, so it's the range of
-//    arr1 that is used internally for psnr calculations.
-//    If `omp_nthreads` is zero, then it will use the maximum number of threads.
-//    The return array contains statistics in the following order:
-//    ret[0] : RMSE
-//    ret[1] : L-Infinity
-//    ret[2] : PSNR
-//    ret[3] : min of arr1
-//    ret[4] : max of arr1
+// Note that arr1 is considered as the ground truth array, so it's the range of
+//   arr1 that is used internally for psnr calculations.
+// If `omp_nthreads` is zero, then it will use the maximum number of threads.
+// The return array contains statistics in the following order:
+// ret[0] : RMSE
+// ret[1] : L-Infinity
+// ret[2] : PSNR
+// ret[3] : min of arr1
+// ret[4] : max of arr1
 template <typename T>
 auto calc_stats(const T* arr1, const T* arr2, size_t arr_len, size_t omp_nthreads = 0)
     -> std::array<T, 5>;
@@ -181,105 +151,63 @@ auto kahan_summation(const T*, size_t) -> T;
 //         dimension is not exact multiplies of requested chunk dimension,
 //         approximate values are used.
 // Note 2: this function works on degraded 2D or 1D volumes too.
-auto chunk_volume(dims_type vol_dim, dims_type chunk_dim) -> std::vector<std::array<size_t, 6>>;
+auto chunk_volume(const dims_type& vol_dim, const dims_type& chunk_dim)
+    -> std::vector<std::array<size_t, 6>>;
 
-// Calculate the mean and variance of a given array.
-// In case of arrays of size zero, it will return {NaN, NaN}.
+// Gather a chunk from a bigger volume
+// If the requested chunk lives outside of the volume, whole or part,
+// this function returns an empty vector.
+template <typename T1, typename T2>
+auto gather_chunk(const T1* vol, dims_type vol_dim, const std::array<size_t, 6>& chunk)
+    -> std::vector<T2>;
+
+// Put this chunk to a bigger volume
+// The `big_vol` should have enough space allocated, and the `small_vol` should contain
+// enough elements to scatter. Memory errors will occur if the conditions are not met.
+template <typename TBIG, typename TSML>
+void scatter_chunk(std::vector<TBIG>& big_vol,
+                   dims_type vol_dim,
+                   const std::vector<TSML>& small_vol,
+                   const std::array<size_t, 6>& chunk);
+
+// Structure that holds information extracted from SPERR headers.
+// This structure is returned by helper function `parse_header()`.
+struct HeaderInfo {
+  uint8_t version_major = 0;
+  bool zstd_applied = false;
+  bool is_3d = false;
+  bool orig_is_float = false;
+
+  // This is the dimension of a 3D volume (NX, NY, NZ) or a 2D slice (NX, NY, 1).
+  dims_type vol_dims = {0, 0, 0};
+
+  // If the bitstream represents a 3D volume, this field holds the dimension of chunks.
+  // For 2D slices, this field holds undefined values.
+  dims_type chunk_dims = {0, 0, 0};
+};
+auto parse_header(const void*) -> HeaderInfo;
+
+// Calculate the variance of a given array.
+// In case of arrays of size zero, it will return std::numeric_limits<T>::infinity().
 // In case of `omp_nthreads == 0`, it will use all available OpenMP threads.
-// ret[0] : mean
-// ret[1] : variance
 template <typename T>
-auto calc_mean_var(const T*, size_t len, size_t omp_nthreads = 0) -> std::array<T, 2>;
+auto calc_variance(const T*, size_t len, size_t omp_nthreads = 0) -> T;
+
+// Decide compression mode based on a collection of parameters.
+auto compression_mode(size_t bit_budget, double psnr, double pwe) -> CompMode;
 
 };  // namespace sperr
+
 
 auto sperr::num_of_xforms(size_t len) -> size_t
 {
   assert(len > 0);
-  // I decide 9 is the minimal length to do one level of xform.
+  // I decide 8 is the minimal length to do one level of xform.
+  const auto f = std::log2(double(len) / 8.0);
+  const auto num = f < 0.0 ? size_t{0} : static_cast<size_t>(f) + 1;
   // I also decide that no matter what the input size is,
   // six (6) is the maxinum number of transforms to do.
-  //
-  size_t num = 0;
-  while (len >= 9) {
-    ++num;
-    len -= len / 2;
-  }
   return std::min(num, size_t{6});
-}
-
-auto sperr::can_use_dyadic(dims_type dims) -> std::optional<size_t>
-{
-  // In case of 2D or 1D `dims`, return empty right away.
-  if (dims[2] < 2 || dims[1] < 2)
-    return {};
-
-  auto xy = sperr::num_of_xforms(std::min(dims[0], dims[1]));
-  auto z = sperr::num_of_xforms(dims[2]);
-
-  // Note: if some dimensions can do 5 levels of transforms and some can do 6, we use
-  //       dyanic scheme and do 5 levels on all of them. I.e., the benefit of dyanic
-  //       transforms exceeds one extra level of transform.
-  //
-  if ((xy == z) || (xy >= 5 && z >= 5))
-    return std::min(xy, z);
-  else
-    return {};
-}
-
-auto sperr::coarsened_resolutions(dims_type full_dims) -> std::vector<dims_type>
-{
-  auto resolutions = std::vector<dims_type>();
-
-  if (full_dims[2] > 1) {  // 3D.
-    const auto dyadic = sperr::can_use_dyadic(full_dims);
-    if (dyadic) {
-      resolutions.reserve(*dyadic);
-      for (size_t lev = *dyadic; lev > 0; lev--) {
-        auto [x, xd] = sperr::calc_approx_detail_len(full_dims[0], lev);
-        auto [y, yd] = sperr::calc_approx_detail_len(full_dims[1], lev);
-        auto [z, zd] = sperr::calc_approx_detail_len(full_dims[2], lev);
-        resolutions.push_back({x, y, z});
-      }
-    }
-  }
-  else {  // 2D. Assume that there's no 1D use case that requires multi-resolution.
-    size_t xy = sperr::num_of_xforms(std::min(full_dims[0], full_dims[1]));
-    resolutions.reserve(xy);
-    for (size_t lev = xy; lev > 0; lev--) {
-      auto [x, xd] = sperr::calc_approx_detail_len(full_dims[0], lev);
-      auto [y, yd] = sperr::calc_approx_detail_len(full_dims[1], lev);
-      resolutions.push_back({x, y, 1});
-    }
-  }
-
-  return resolutions;
-}
-
-auto sperr::coarsened_resolutions(dims_type vdim, dims_type cdim) -> std::vector<dims_type>
-{
-  auto resolutions = std::vector<dims_type>();
-
-  // Test if the volume dimension is divisible by the chunk dimension.
-  bool divisible = true;
-  for (size_t i = 0; i < 3; i++)
-    if (vdim[i] % cdim[i] != 0)
-      divisible = false;
-
-  if (divisible) {
-    auto nx = vdim[0] / cdim[0];
-    auto ny = vdim[1] / cdim[1];
-    auto nz = vdim[2] / cdim[2];
-
-    resolutions = sperr::coarsened_resolutions(cdim);
-    for (auto& resolution : resolutions) {
-      resolution[0] *= nx;
-      resolution[1] *= ny;
-      resolution[2] *= nz;
-    }
-  }
-
-  return resolutions;
 }
 
 auto sperr::num_of_partitions(size_t len) -> size_t
@@ -307,11 +235,12 @@ auto sperr::calc_approx_detail_len(size_t orig_len, size_t lev) -> std::array<si
 
 // Good solution to deal with bools and unsigned chars
 // https://stackoverflow.com/questions/8461126/how-to-create-a-byte-out-of-8-bool-values-and-vice-versa
-auto sperr::pack_booleans(vec8_type& dest, const std::vector<bool>& src, size_t offset) -> RTNType
+auto sperr::pack_booleans(std::vector<uint8_t>& dest, const std::vector<bool>& src, size_t offset)
+    -> RTNType
 {
   // `src` has to have a size of multiples of 8.
   if (src.size() % 8 != 0)
-    return RTNType::WrongLength;
+    return RTNType::BitstreamWrongLen;
 
   // `dest` should have enough space, as the API specifies.
   assert(dest.size() >= offset + src.size() / 8);
@@ -358,10 +287,10 @@ auto sperr::unpack_booleans(std::vector<bool>& dest,
   // See Github issue #122.
 
   if (src == nullptr)
-    return RTNType::Error;
+    return RTNType::InvalidParam;
 
   if (src_len < src_offset)
-    return RTNType::WrongLength;
+    return RTNType::BitstreamWrongLen;
 
   const size_t num_of_bytes = src_len - src_offset;
 
@@ -424,7 +353,7 @@ auto sperr::pack_8_booleans(std::array<bool, 8> src) -> uint8_t
   // It turns out that C++ doesn't specify bool to be one byte,
   // so to be safe we copy the content of src to array of uint8_t.
   auto bytes = std::array<uint8_t, 8>();
-  std::copy(src.cbegin(), src.cend(), bytes.begin());
+  std::copy(src.begin(), src.end(), bytes.begin());
   const uint64_t magic = 0x8040201008040201;
   uint64_t t = 0;
   std::memcpy(&t, bytes.data(), 8);
@@ -442,13 +371,13 @@ auto sperr::unpack_8_booleans(uint8_t src) -> std::array<bool, 8>
   auto bytes = std::array<uint8_t, 8>();
   std::memcpy(bytes.data(), &t, 8);
   auto b8 = std::array<bool, 8>();
-  std::copy(bytes.cbegin(), bytes.cend(), b8.begin());
+  std::copy(bytes.begin(), bytes.end(), b8.begin());
   return b8;
 }
 
-auto sperr::read_n_bytes(std::string filename, size_t n_bytes) -> vec8_type
+auto sperr::read_n_bytes(std::string filename, size_t n_bytes) -> std::vector<uint8_t>
 {
-  auto buf = vec8_type();
+  auto buf = std::vector<uint8_t>();
 
   std::unique_ptr<std::FILE, decltype(&std::fclose)> fp(std::fopen(filename.data(), "rb"),
                                                         &std::fclose);
@@ -456,14 +385,11 @@ auto sperr::read_n_bytes(std::string filename, size_t n_bytes) -> vec8_type
   if (!fp)
     return buf;
 
-  // POSIX systems require the size of a file to be specified, so
-  // one can fseek to the end of the file.
-  auto sk = std::fseek(fp.get(), 0, SEEK_END);
-  assert(sk == 0);
+  std::fseek(fp.get(), 0, SEEK_END);
   if (std::ftell(fp.get()) < n_bytes)
     return buf;
 
-  std::rewind(fp.get());
+  std::fseek(fp.get(), 0, SEEK_SET);
   buf.resize(n_bytes);
   if (std::fread(buf.data(), 1, n_bytes, fp.get()) != n_bytes)
     buf.clear();
@@ -472,35 +398,30 @@ auto sperr::read_n_bytes(std::string filename, size_t n_bytes) -> vec8_type
 }
 
 template <typename T>
-auto sperr::read_whole_file(std::string filename) -> vec_type<T>
+auto sperr::read_whole_file(std::string filename) -> std::vector<T>
 {
-  auto buf = vec_type<T>();
+  std::vector<T> buf;
 
   std::unique_ptr<std::FILE, decltype(&std::fclose)> fp(std::fopen(filename.data(), "rb"),
                                                         &std::fclose);
   if (!fp)
     return buf;
 
-  // POSIX systems require the size of a file to be specified, so
-  // one can fseek to the end of the file.
-  auto sk = std::fseek(fp.get(), 0, SEEK_END);
-  assert(sk == 0);
+  std::fseek(fp.get(), 0, SEEK_END);
   const size_t file_size = std::ftell(fp.get());
-  if (file_size % sizeof(T) != 0)
-    return buf;
-
   const size_t num_vals = file_size / sizeof(T);
+  std::fseek(fp.get(), 0, SEEK_SET);
+
   buf.resize(num_vals);
-  std::rewind(fp.get());
   size_t nread = std::fread(buf.data(), sizeof(T), num_vals, fp.get());
   if (nread != num_vals)
     buf.clear();
 
   return buf;
 }
-template auto sperr::read_whole_file(std::string) -> vecf_type;
-template auto sperr::read_whole_file(std::string) -> vecd_type;
-template auto sperr::read_whole_file(std::string) -> vec8_type;
+template auto sperr::read_whole_file(std::string) -> std::vector<float>;
+template auto sperr::read_whole_file(std::string) -> std::vector<double>;
+template auto sperr::read_whole_file(std::string) -> std::vector<uint8_t>;
 
 auto sperr::write_n_bytes(std::string filename, size_t n_bytes, const void* buffer) -> RTNType
 {
@@ -515,82 +436,11 @@ auto sperr::write_n_bytes(std::string filename, size_t n_bytes, const void* buff
     return RTNType::Good;
 }
 
-auto sperr::read_sections(std::string filename,
-                          const std::vector<size_t>& sections,
-                          vec8_type& dst) -> RTNType
-{
-  // Calculate the farthest file location to be read.
-  size_t far = 0;
-  for (size_t i = 0; i < sections.size() / 2; i++)
-    far = std::max(far, sections[i * 2] + sections[i * 2 + 1]);
-
-  // Prepare to read the file.
-  std::unique_ptr<std::FILE, decltype(&std::fclose)> fp(std::fopen(filename.data(), "rb"),
-                                                        &std::fclose);
-  if (!fp)
-    return RTNType::IOError;
-
-  // Retrieve the file length in bytes.
-  //    P.S. POSIX systems require the size of a file to be specified, so
-  //    one can fseek to the end of the file.
-  auto sk = std::fseek(fp.get(), 0, SEEK_END);
-  assert(sk == 0);
-  const size_t file_len = std::ftell(fp.get());
-  if (file_len < far)
-    return RTNType::WrongLength;
-
-  // Calculate the resulting size of `dst`, and allocate enough memory.
-  auto dst_pos = dst.size();  // keep track of the current position to write section data.
-  auto total_len = dst.size();
-  for (size_t i = 0; i < sections.size() / 2; i++)
-    total_len += sections[i * 2 + 1];
-  dst.resize(total_len);
-
-  // Read in sections of the file!
-  for (size_t i = 0; i < sections.size() / 2; i++) {
-    sk = std::fseek(fp.get(), sections[i * 2], SEEK_SET);
-    assert(sk == 0);
-    auto nread = std::fread(dst.data() + dst_pos, 1, sections[i * 2 + 1], fp.get());
-    assert(nread == sections[i * 2 + 1]);
-    dst_pos += nread;
-  }
-
-  return RTNType::Good;
-}
-
-auto sperr::extract_sections(const void* buf,
-                             size_t buf_len,
-                             const std::vector<size_t>& sections,
-                             vec8_type& dst) -> RTNType
-{
-  // Calculate the farthest file location to be read.
-  size_t far = 0;
-  for (size_t i = 0; i < sections.size() / 2; i++)
-    far = std::max(far, sections[i * 2] + sections[i * 2 + 1]);
-  if (buf_len < far)
-    return RTNType::WrongLength;
-
-  // Calculate the resulting size of `dst`, and allocate enough memory.
-  auto total_len = dst.size();
-  for (size_t i = 0; i < sections.size() / 2; i++)
-    total_len += sections[i * 2 + 1];
-  dst.reserve(total_len);
-
-  // Extract sections of the buffer!
-  for (size_t i = 0; i < sections.size() / 2; i++) {
-    const auto* beg = static_cast<const uint8_t*>(buf) + sections[i * 2];
-    const auto* end = beg + sections[i * 2 + 1];
-    std::copy(beg, end, std::back_inserter(dst));
-  }
-
-  return RTNType::Good;
-}
-
 template <typename T>
 auto sperr::calc_stats(const T* arr1, const T* arr2, size_t arr_len, size_t omp_nthreads)
     -> std::array<T, 5>
 {
-  const size_t stride_size = 8192;
+  const size_t stride_size = 4096;
   const size_t num_of_strides = arr_len / stride_size;
   const size_t remainder_size = arr_len - stride_size * num_of_strides;
 
@@ -622,8 +472,8 @@ auto sperr::calc_stats(const T* arr1, const T* arr2, size_t arr_len, size_t omp_
     return {rmse, linfty, psnr, arr1min, arr1max};
   }
 
-  auto sum_vec = vec_type<T>(num_of_strides + 1);
-  auto linfty_vec = vec_type<T>(num_of_strides + 1);
+  auto sum_vec = std::vector<T>(num_of_strides + 1);
+  auto linfty_vec = std::vector<T>(num_of_strides + 1);
 
 //
 // Calculate diff summation and l-infty of each stride
@@ -661,7 +511,7 @@ auto sperr::calc_stats(const T* arr1, const T* arr2, size_t arr_len, size_t omp_
   //
   // Now calculate linfty
   //
-  linfty = *(std::max_element(linfty_vec.cbegin(), linfty_vec.cend()));
+  linfty = *(std::max_element(linfty_vec.begin(), linfty_vec.end()));
 
   //
   // Now calculate rmse and psnr
@@ -677,10 +527,8 @@ auto sperr::calc_stats(const T* arr1, const T* arr2, size_t arr_len, size_t omp_
   return {rmse, linfty, psnr, arr1min, arr1max};
 }
 template auto sperr::calc_stats(const float*, const float*, size_t, size_t) -> std::array<float, 5>;
-template auto sperr::calc_stats(const double*,
-                                const double*,
-                                size_t,
-                                size_t) -> std::array<double, 5>;
+template auto sperr::calc_stats(const double*, const double*, size_t, size_t)
+    -> std::array<double, 5>;
 
 template <typename T>
 auto sperr::kahan_summation(const T* arr, size_t len) -> T
@@ -699,8 +547,9 @@ auto sperr::kahan_summation(const T* arr, size_t len) -> T
 template auto sperr::kahan_summation(const float*, size_t) -> float;
 template auto sperr::kahan_summation(const double*, size_t) -> double;
 
-auto sperr::chunk_volume(dims_type vol_dim,
-                         dims_type chunk_dim) -> std::vector<std::array<size_t, 6>>
+auto sperr::chunk_volume(const std::array<size_t, 3>& vol_dim,
+                         const std::array<size_t, 3>& chunk_dim)
+    -> std::vector<std::array<size_t, 6>>
 {
   // Step 1: figure out how many segments are there along each axis.
   auto n_segs = std::array<size_t, 3>();
@@ -751,25 +600,144 @@ auto sperr::chunk_volume(dims_type vol_dim,
   return chunks;
 }
 
-template <typename T>
-auto sperr::calc_mean_var(const T* arr, size_t len, size_t omp_nthreads) -> std::array<T, 2>
+template <typename T1, typename T2>
+auto sperr::gather_chunk(const T1* vol, dims_type vol_dim, const std::array<size_t, 6>& chunk)
+    -> std::vector<T2>
 {
-  if (len == 0) {
-    static_assert(std::is_floating_point_v<T>);
-    if constexpr (std::is_same_v<T, float>)
-      return {std::nanf("1"), std::nanf("2")};
-    else
-      return {std::nan("1"), std::nan("2")};
+  auto chunk_buf = std::vector<T2>();
+  if (chunk[0] + chunk[1] > vol_dim[0] || chunk[2] + chunk[3] > vol_dim[1] ||
+      chunk[4] + chunk[5] > vol_dim[2])
+    return chunk_buf;
+
+  chunk_buf.resize(chunk[1] * chunk[3] * chunk[5]);
+
+  size_t idx = 0;
+  for (size_t z = chunk[4]; z < chunk[4] + chunk[5]; z++) {
+    const size_t plane_offset = z * vol_dim[0] * vol_dim[1];
+    for (size_t y = chunk[2]; y < chunk[2] + chunk[3]; y++) {
+      const size_t col_offset = plane_offset + y * vol_dim[0];
+      for (size_t x = chunk[0]; x < chunk[0] + chunk[1]; x++)
+        chunk_buf[idx++] = vol[col_offset + x];
+    }
   }
+
+  // Will be subject to Named Return Value Optimization.
+  return chunk_buf;
+}
+template auto sperr::gather_chunk(const float*, dims_type, const std::array<size_t, 6>&)
+    -> std::vector<float>;
+template auto sperr::gather_chunk(const float*, dims_type, const std::array<size_t, 6>&)
+    -> std::vector<double>;
+template auto sperr::gather_chunk(const double*, dims_type, const std::array<size_t, 6>&)
+    -> std::vector<float>;
+template auto sperr::gather_chunk(const double*, dims_type, const std::array<size_t, 6>&)
+    -> std::vector<double>;
+
+template <typename TBIG, typename TSML>
+void sperr::scatter_chunk(std::vector<TBIG>& big_vol,
+                          dims_type vol_dim,
+                          const std::vector<TSML>& small_vol,
+                          const std::array<size_t, 6>& chunk)
+{
+  size_t idx = 0;
+  for (size_t z = chunk[4]; z < chunk[4] + chunk[5]; z++) {
+    const size_t plane_offset = z * vol_dim[0] * vol_dim[1];
+    for (size_t y = chunk[2]; y < chunk[2] + chunk[3]; y++) {
+      const size_t col_offset = plane_offset + y * vol_dim[0];
+      for (size_t x = chunk[0]; x < chunk[0] + chunk[1]; x++)
+        big_vol[col_offset + x] = small_vol[idx++];
+    }
+  }
+}
+template void sperr::scatter_chunk(std::vector<float>&,
+                                   dims_type,
+                                   const std::vector<float>&,
+                                   const std::array<size_t, 6>&);
+template void sperr::scatter_chunk(std::vector<float>&,
+                                   dims_type,
+                                   const std::vector<double>&,
+                                   const std::array<size_t, 6>&);
+template void sperr::scatter_chunk(std::vector<double>&,
+                                   dims_type,
+                                   const std::vector<float>&,
+                                   const std::array<size_t, 6>&);
+template void sperr::scatter_chunk(std::vector<double>&,
+                                   dims_type,
+                                   const std::vector<double>&,
+                                   const std::array<size_t, 6>&);
+
+auto sperr::parse_header(const void* ptr) -> HeaderInfo
+{
+  const uint8_t* u8p = static_cast<const uint8_t*>(ptr);
+  size_t loc = 0;
+  auto header = HeaderInfo();
+
+  // Parse version numbers
+  header.version_major = *u8p;
+  loc++;
+
+  // Parse 8 booleans
+  const auto b8 = sperr::unpack_8_booleans(u8p[loc]);
+  loc++;
+
+  header.zstd_applied = b8[0];
+  header.is_3d = b8[1];
+  header.orig_is_float = b8[2];
+
+  // Parse the dimension info.
+  if (header.is_3d) {
+    if (b8[3]) {  // there are multiple chunks!
+      uint32_t vcdim[6];
+      std::memcpy(vcdim, u8p + loc, sizeof(vcdim));
+      loc += sizeof(vcdim);
+
+      header.vol_dims[0] = vcdim[0];
+      header.vol_dims[1] = vcdim[1];
+      header.vol_dims[2] = vcdim[2];
+      header.chunk_dims[0] = vcdim[3];
+      header.chunk_dims[1] = vcdim[4];
+      header.chunk_dims[2] = vcdim[5];
+    }
+    else {
+      uint32_t vdim[3];
+      std::memcpy(vdim, u8p + loc, sizeof(vdim));
+      loc += sizeof(vdim);
+
+      header.vol_dims[0] = vdim[0];
+      header.vol_dims[1] = vdim[1];
+      header.vol_dims[2] = vdim[2];
+      header.chunk_dims[0] = vdim[0];
+      header.chunk_dims[1] = vdim[1];
+      header.chunk_dims[2] = vdim[2];
+    }
+  }
+  else {
+    uint32_t dims[2];
+    std::memcpy(dims, u8p + loc, sizeof(dims));
+    loc += sizeof(dims);
+
+    header.vol_dims[0] = dims[0];
+    header.vol_dims[1] = dims[1];
+    header.vol_dims[2] = 1;
+  }
+
+  return header;
+}
+
+template <typename T>
+auto sperr::calc_variance(const T* arr, size_t len, size_t omp_nthreads) -> T
+{
+  if (len == 0)
+    return std::numeric_limits<T>::infinity();
 
 #ifdef USE_OMP
   if (omp_nthreads == 0)
     omp_nthreads = omp_get_max_threads();
 #endif
 
-  const size_t stride_size = 16'384;
+  const size_t stride_size = 4096;
   const size_t num_strides = len / stride_size;
-  auto tmp_buf = vec_type<T>(num_strides + 1);
+  auto tmp_buf = std::vector<T>(num_strides + 1);
 
   // First, calculate the mean of this array.
 #pragma omp parallel for num_threads(omp_nthreads)
@@ -797,10 +765,27 @@ auto sperr::calc_mean_var(const T* arr, size_t len, size_t omp_nthreads) -> std:
   const auto diff_sum = std::accumulate(tmp_buf.cbegin(), tmp_buf.cend(), T{0.0});
   const auto var = diff_sum / static_cast<T>(len);
 
-  return {mean, var};
+  return var;
 }
-template auto sperr::calc_mean_var(const float*, size_t, size_t) -> std::array<float, 2>;
-template auto sperr::calc_mean_var(const double*, size_t, size_t) -> std::array<double, 2>;
+template auto sperr::calc_variance(const float*, size_t, size_t) -> float;
+template auto sperr::calc_variance(const double*, size_t, size_t) -> double;
+
+auto sperr::compression_mode(size_t bit_budget, double psnr, double pwe) -> CompMode
+{
+  if (bit_budget < sperr::max_size && psnr == sperr::max_d && pwe == 0.0) {
+    return CompMode::FixedSize;
+  }
+  else if (bit_budget == sperr::max_size && psnr < sperr::max_d && pwe == 0.0) {
+    return CompMode::FixedPSNR;
+  }
+  else if (bit_budget == sperr::max_size && psnr == sperr::max_d && pwe > 0.0) {
+    return CompMode::FixedPWE;
+  }
+  else {
+    return CompMode::Unknown;
+  }
+}
+
 
 
 #endif
