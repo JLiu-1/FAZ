@@ -490,7 +490,7 @@ namespace QoZ {
         int conditioning=0;
         size_t meta_size=0;
         std::array<uint8_t, 17> meta;
-        //std::vector< std::array<uint8_t, 17> > block_metas;
+        std::vector< std::array<uint8_t, 17> > block_metas;
         int fixWave=-1;
         bool sperrWithoutWave=false;
         bool pyBind=true;
