@@ -107,11 +107,12 @@ char *SPERR_Compress(QoZ::Config &conf, T *data, size_t &outSize){//only support
             compressor->compress(reinterpret_cast<const double*>(data), conf.num);
         
         auto stream = compressor->get_encoded_bitstream();
-        compressor.reset();
+        
             
         char * outData=new char[stream.size()+conf.size_est()];
         outSize = stream.size();
         memcpy(outData,stream.data(),stream.size());//maybe not efficient
+        compressor.reset();
         stream.clear();
         stream.shrink_to_fit();
         std::cout<<outSize<<std::endl;
@@ -158,11 +159,12 @@ char *SPERR_Compress(QoZ::Config &conf, T *data, size_t &outSize){//only support
         stream[1] = sperr::pack_8_booleans(b8);
         std::memcpy(stream.data() + 2, conf.dims.data(), sizeof(size_t) * N);
         compressor->append_encoded_bitstream(stream);
-        compressor.reset();
+        
             
         char * outData=new char[stream.size()+conf.size_est()];
         outSize=stream.size();
         memcpy(outData,stream.data(),stream.size());//maybe not efficient
+        compressor.reset();
         stream.clear();
         stream.shrink_to_fit();
         return outData;
@@ -192,7 +194,7 @@ void SPERR_Decompress(char *cmpData, size_t cmpSize, T *decData){//only supports
         in_stream.clear();
         in_stream.shrink_to_fit();
         const auto outputd = decompressor->release_decoded_data();
-        decompressor.reset();
+        
         if (std::is_same<T, double>::value){
             
             memcpy(decData,outputd.data(),sizeof(T)*outputd.size());//maybe not efficient
@@ -202,6 +204,7 @@ void SPERR_Decompress(char *cmpData, size_t cmpSize, T *decData){//only supports
             std::copy(outputd.cbegin(), outputd.cend(), outputf.begin());
             memcpy(decData,outputf.data(),sizeof(T)*outputf.size());//maybe not efficient
         }
+        decompressor.reset();
     }
     else{
         //SPERR2D_Decompressor decompressor;
@@ -224,7 +227,7 @@ void SPERR_Decompress(char *cmpData, size_t cmpSize, T *decData){//only supports
         in_stream.clear();
         in_stream.shrink_to_fit();
         const auto outputd = decompressor->release_decoded_data();
-        decompressor.reset();
+        
         
         if (std::is_same<T, double>::value){
             
@@ -235,6 +238,7 @@ void SPERR_Decompress(char *cmpData, size_t cmpSize, T *decData){//only supports
             std::copy(outputd.cbegin(), outputd.cend(), outputf.begin());
             memcpy(decData,outputf.data(),sizeof(T)*outputf.size());//maybe not efficient
         }
+        decompressor.reset();
     }
 }
 
