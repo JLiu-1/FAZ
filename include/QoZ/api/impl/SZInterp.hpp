@@ -130,9 +130,9 @@ char *SPERR_Compress(QoZ::Config &conf, T *data, size_t &outSize){//only support
 
 
         if (std::is_same<T, double>::value)
-            rtn = compressor->copy_data<double>(reinterpret_cast<const double*>(data), conf.num);
+            compressor->copy_data<double>(reinterpret_cast<const double*>(data), conf.num);
         else
-            rtn = compressor->copy_data<float>(reinterpret_cast<const float*>(data), conf.num);
+            compressor->copy_data<float>(reinterpret_cast<const float*>(data), conf.num);
         if(rtn!=sperr::RTNType::Good){
             std::cerr << "Copy error."<< std::endl;
             return NULL;
