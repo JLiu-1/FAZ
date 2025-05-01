@@ -102,7 +102,6 @@ char *SPERR_Compress(QoZ::Config &conf, T *data, size_t &outSize){//only support
             rtn = compressor.copy_data<float>(reinterpret_cast<const float*>(data), conf.num,
                                     {conf.dims[2], conf.dims[1], conf.dims[0]}, {chunks[0], chunks[1], chunks[2]});
         compressor.set_tolerance(conf.absErrorBound);*/
-        std::cout<<conf.num<<std::endl;
         if (std::is_same<T, double>::value)
             compressor->compress(reinterpret_cast<const double*>(data), conf.num);
         else{
@@ -1209,8 +1208,7 @@ std::pair<double,double> CompressTest(const QoZ::Config &conf,const std::vector<
                 
                 totalOutSize+=sampleOutSize;
                 if(1){//tuningTarget!=QoZ::TUNING_TARGET_CR){
-                    std::cout<<sampleOutSize<<std::endl;
-                    SPERR_Decompress<T,N>(cmprData,sampleOutSize,cur_block.data());
+\                    SPERR_Decompress<T,N>(cmprData,sampleOutSize,cur_block.data());
                     std::vector<size_t> ori_sbs(N,testConfig.sampleBlockSize+1);
                     T *idwtData;
                     if(conf.pyBind)
