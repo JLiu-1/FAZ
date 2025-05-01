@@ -1208,7 +1208,7 @@ std::pair<double,double> CompressTest(const QoZ::Config &conf,const std::vector<
                 
                 totalOutSize+=sampleOutSize;
                 if(1){//tuningTarget!=QoZ::TUNING_TARGET_CR){
-\                    SPERR_Decompress<T,N>(cmprData,sampleOutSize,cur_block.data());
+                    SPERR_Decompress<T,N>(cmprData,sampleOutSize,cur_block.data());
                     std::vector<size_t> ori_sbs(N,testConfig.sampleBlockSize+1);
                     T *idwtData;
                     if(conf.pyBind)
