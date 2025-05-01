@@ -106,7 +106,6 @@ char *SPERR_Compress(QoZ::Config &conf, T *data, size_t &outSize){//only support
         if (std::is_same<T, double>::value)
             compressor->compress(reinterpret_cast<const double*>(data), conf.num);
         else{
-            std::cout<<"gogogo"<<std::endl;
             compressor->compress(reinterpret_cast<const float*>(data), conf.num);
         }
         
@@ -119,7 +118,6 @@ char *SPERR_Compress(QoZ::Config &conf, T *data, size_t &outSize){//only support
         compressor.reset();
         stream.clear();
         stream.shrink_to_fit();
-        std::cout<<outSize<<std::endl;
         return outData;
     }
     else{

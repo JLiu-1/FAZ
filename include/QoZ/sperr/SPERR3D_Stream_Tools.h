@@ -114,7 +114,6 @@ auto sperr::SPERR3D_Stream_Tools::get_stream_header(const void* p) const -> SPER
   // Step 1: major version number
   header.major_version = u8p[0];
   size_t pos = 1;
-  std::cout<<"s1 "<<header.major_version<<std::endl;
 
   // Step 2: unpack 8 booleans.
   const auto b8 = sperr::unpack_8_booleans(u8p[pos++]);
@@ -123,7 +122,6 @@ auto sperr::SPERR3D_Stream_Tools::get_stream_header(const void* p) const -> SPER
   header.is_float = b8[2];
   header.multi_chunk = b8[3];
 
-  std::cout<<"s2 "<<header.multi_chunk<<std::endl;
 
   // Step 3: volume and chunk dimensions
   uint32_t int3[3] = {0, 0, 0};
@@ -150,7 +148,6 @@ auto sperr::SPERR3D_Stream_Tools::get_stream_header(const void* p) const -> SPER
   else
     assert(num_chunks == 1);
 
-  std::cout<<"s3 "<<header.chunk_dims[2]<<std::endl;
 
   // Step 4: derived info!
   if (header.multi_chunk)
@@ -169,7 +166,6 @@ auto sperr::SPERR3D_Stream_Tools::get_stream_header(const void* p) const -> SPER
     header.chunk_offsets[i * 2 + 1] = chunk_len[i];
   }
 
-  std::cout<<"s4 "<<header.chunk_offsets[num_chunks * 2 - 1]<<std::endl;
 
   return header;
 }
