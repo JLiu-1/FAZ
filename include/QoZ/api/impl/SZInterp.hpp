@@ -114,6 +114,7 @@ char *SPERR_Compress(QoZ::Config &conf, T *data, size_t &outSize){//only support
         memcpy(outData,stream.data(),stream.size());//maybe not efficient
         stream.clear();
         stream.shrink_to_fit();
+        std::cout<<outSize<<std::endl;
         return outData;
     }
     else{
@@ -1202,6 +1203,7 @@ std::pair<double,double> CompressTest(const QoZ::Config &conf,const std::vector<
                 
                 totalOutSize+=sampleOutSize;
                 if(1){//tuningTarget!=QoZ::TUNING_TARGET_CR){
+                    std::cout<<sampleOutSize<<std::endl;
                     SPERR_Decompress<T,N>(cmprData,sampleOutSize,cur_block.data());
                     std::vector<size_t> ori_sbs(N,testConfig.sampleBlockSize+1);
                     T *idwtData;
