@@ -90,7 +90,7 @@ char *SPERR_Compress(QoZ::Config &conf, T *data, size_t &outSize){//only support
             compressor->set_skip_wave(true);
         auto rtn = sperr::RTNType::Good;
           
-        auto chunks = std::vector<size_t>{1024,1024,1024};//ori 256^3, to tell the truth this is not large enough for scale but I just keep it, maybe set it large later.
+        auto chunks = std::array<size_t,3>{1024,1024,1024};//ori 256^3, to tell the truth this is not large enough for scale but I just keep it, maybe set it large later.
         const auto sperr_dims = sperr::dims_type{conf.dims[0],conf.dims[1],conf.dims[2]};
         compressor->set_dims_and_chunks(sperr_dims, chunks);
         /*
@@ -130,9 +130,9 @@ char *SPERR_Compress(QoZ::Config &conf, T *data, size_t &outSize){//only support
 
 
         if (std::is_same<T, double>::value)
-            rtn = compressor->copy_data<double>(reinterpret_cast<const double*>(data), conf.num,);
+            rtn = compressor->copy_data<double>(reinterpret_cast<const double*>(data), conf.num);
         else
-            rtn = compressor->copy_data<float>(reinterpret_cast<const float*>(data), conf.num,);
+            rtn = compressor->copy_data<float>(reinterpret_cast<const float*>(data), conf.num);
         if(rtn!=sperr::RTNType::Good){
             std::cerr << "Copy error."<< std::endl;
             return NULL;
@@ -197,19 +197,19 @@ void SPERR_Decompress(char *cmpData, size_t cmpSize, T *decData){//only supports
             memcpy(decData,outputd.data(),sizeof(T)*outputd.size());//maybe not efficient
         }
         else{
-            auto outputf = sperr::vecf_type(buf.size());
+            auto outputf = sperr::vecf_type(outputd.size());
             std::copy(outputd.cbegin(), outputd.cend(), outputf.begin());
             memcpy(decData,outputf.data(),sizeof(T)*outputf.size());//maybe not efficient
         }
     }
     else{
         //SPERR2D_Decompressor decompressor;
-        const auto header_size = 10ul;
+        const auto header_len = 10ul;
         auto decompressor = std::make_unique<sperr::SPECK2D_FLT>();
         auto dim2d = std::array<uint32_t, 2>{0, 0};
         std::memcpy(dim2d.data(), in_stream.data() + 2, sizeof(dim2d));
         const auto sperr_dims = sperr::dims_type{dim2d[0], dim2d[1], 1ul};
-        decompressor.set_dims(sperr_dims);
+        decompressor->set_dims(sperr_dims);
         if (decompressor->use_bitstream(in_stream.data() + header_len, in_stream.size() - header_len) != sperr::RTNType::Good) {
             std::cerr << "Read compressed file error: "<< std::endl;
             return;
@@ -222,7 +222,7 @@ void SPERR_Decompress(char *cmpData, size_t cmpSize, T *decData){//only supports
        
         in_stream.clear();
         in_stream.shrink_to_fit();
-        const auto outputd = decompressor.release_decoded_data();
+        const auto outputd = decompressor->release_decoded_data();
         decompressor.reset();
         
         if (std::is_same<T, double>::value){
@@ -230,7 +230,7 @@ void SPERR_Decompress(char *cmpData, size_t cmpSize, T *decData){//only supports
             memcpy(decData,outputd.data(),sizeof(T)*outputd.size());//maybe not efficient
         }
         else{
-            auto outputf = sperr::vecf_type(buf.size());
+            auto outputf = sperr::vecf_type(outputd.size());
             std::copy(outputd.cbegin(), outputd.cend(), outputf.begin());
             memcpy(decData,outputf.data(),sizeof(T)*outputf.size());//maybe not efficient
         }
