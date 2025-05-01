@@ -45,7 +45,7 @@ class SPERR3D_OMP_D {
  private:
   sperr::dims_type m_dims = {0, 0, 0};        // Dimension of the entire volume
   sperr::dims_type m_chunk_dims = {0, 0, 0};  // Preferred dimensions for a chunk
- size_t m_num_threads = 1;
+  size_t m_num_threads = 1;
 #ifdef USE_OMP
  
 
@@ -168,11 +168,12 @@ auto sperr::SPERR3D_OMP_D::decompress(const void* p, bool multi_res) -> RTNType
     m_decompressor = std::make_unique<SPECK3D_FLT>();
 #endif
 
+#ifdef USE_OMP
 #pragma omp parallel for num_threads(m_num_threads)
   for (size_t chunkI = 0; chunkI < num_chunks; chunkI++) {
-#ifdef USE_OMP
     auto& decompressor = m_decompressors[omp_get_thread_num()];
 #else
+  for (size_t chunkI = 0; chunkI < num_chunks; chunkI++) {
     auto& decompressor = m_decompressor;
 #endif
 

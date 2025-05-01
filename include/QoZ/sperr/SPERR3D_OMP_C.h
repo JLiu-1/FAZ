@@ -182,12 +182,12 @@ auto sperr::SPERR3D_OMP_C::compress(const T* buf, size_t buf_len) -> RTNType
   if (m_compressor == nullptr)
     m_compressor = std::make_unique<SPECK3D_FLT>();
 #endif
-
+#ifdef USE_OMP
 #pragma omp parallel for num_threads(m_num_threads)
   for (size_t i = 0; i < num_chunks; i++) {
-#ifdef USE_OMP
     auto& compressor = m_compressors[omp_get_thread_num()];
 #else
+  for (size_t i = 0; i < num_chunks; i++) {
     auto& compressor = m_compressor;
 #endif
     std::cout<<"letsgo"<<std::endl;
