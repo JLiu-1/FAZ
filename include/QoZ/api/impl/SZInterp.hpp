@@ -66,7 +66,7 @@ auto pre_Condition(const QoZ::Config &conf,T * data){//conditioner not updated t
 }
 
 template<class T, QoZ::uint N>
-auto post_Condition(T * data,const size_t &num,const sperr::vec8_type& meta){
+auto post_Condition(T * data,const size_t &num,const std::array<uint8_t, 17>& meta){
     std::vector<double> buf(data,data+num);
    
     sperr::dims_type temp_dims={0,0,0};//temp. Fix for later introducing custom filter.
@@ -91,7 +91,8 @@ char *SPERR_Compress(QoZ::Config &conf, T *data, size_t &outSize){//only support
         auto rtn = sperr::RTNType::Good;
           
         auto chunks = std::vector<size_t>{1024,1024,1024};//ori 256^3, to tell the truth this is not large enough for scale but I just keep it, maybe set it large later.
-        compressor->set_dims_and_chunks(conf.dims, chunks);
+        const auto sperr_dims = sperr::dims_type{conf.dims[0],conf.dims[1],conf.dims[2]};
+        compressor->set_dims_and_chunks(sperr_dims, chunks);
         /*
         if (std::is_same<T, double>::value)
             rtn = compressor.copy_data<double>(reinterpret_cast<const double*>(data), conf.num,
@@ -106,10 +107,10 @@ char *SPERR_Compress(QoZ::Config &conf, T *data, size_t &outSize){//only support
             compressor->compress(reinterpret_cast<const double*>(data), conf.num);
         
         auto stream = compressor->get_encoded_bitstream();
-        compressor.reset()
+        compressor.reset();
             
         char * outData=new char[stream.size()+conf.size_est()];
-        outSize=stream.size();
+        outSize = stream.size();
         memcpy(outData,stream.data(),stream.size());//maybe not efficient
         stream.clear();
         stream.shrink_to_fit();

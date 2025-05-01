@@ -45,9 +45,9 @@ class SPERR3D_OMP_D {
  private:
   sperr::dims_type m_dims = {0, 0, 0};        // Dimension of the entire volume
   sperr::dims_type m_chunk_dims = {0, 0, 0};  // Preferred dimensions for a chunk
-
+ size_t m_num_threads = 1;
 #ifdef USE_OMP
-  size_t m_num_threads = 1;
+ 
 
   // It turns out that the object of `SPECK3D_FLT` is not copy-constructible, so it's
   //    a little difficult to work with a container (std::vector<>), so we ask the
@@ -100,7 +100,7 @@ auto sperr::SPERR3D_OMP_D::use_bitstream(const void* p, size_t total_len) -> RTN
   auto header = tools.get_stream_header(p);
 
   // Verify some info.
-  if (header.major_version != static_cast<uint8_t>(SPERR_VERSION_MAJOR))
+  if (header.major_version != static_cast<uint8_t>(0))
     return RTNType::VersionMismatch;
   if (!header.is_3D)
     return RTNType::SliceVolumeMismatch;
