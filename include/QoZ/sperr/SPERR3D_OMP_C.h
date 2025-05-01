@@ -190,7 +190,7 @@ auto sperr::SPERR3D_OMP_C::compress(const T* buf, size_t buf_len) -> RTNType
 #else
     auto& compressor = m_compressor;
 #endif
-
+    std::cout<<"letsgo"<<std::endl;
     // Gather data for this chunk, Setup compressor parameters, and compress!
     auto chunk = m_gather_chunk<T>(buf, m_dims, chunk_idx[i]);
     assert(!chunk.empty());
