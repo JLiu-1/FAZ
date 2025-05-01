@@ -242,8 +242,10 @@ auto sperr::SPERR3D_OMP_C::get_encoded_bitstream() const -> vec8_type
   auto header = m_generate_header();
   assert(!header.empty());
   auto header_size = header.size();
+  std::cout<<"header "<<header_size<<std::endl;
   auto stream_size = std::accumulate(m_encoded_streams.cbegin(), m_encoded_streams.cend(), 0lu,
                                      [](size_t a, const auto& b) { return a + b.size(); });
+  std::cout<<"stream "<<stream_size<<std::endl;
   header.resize(header_size + stream_size);
 
   auto itr = header.begin() + header_size;
