@@ -87,8 +87,8 @@ class SPECK_FLT {
   condi_type m_condi_bitstream;
   Bitmask m_sign_array;
   std::vector<vecd_type> m_hierarchy;  // multi-resolution decoding
-  bool m-skip_wave=false;
-  double m_eb_coeff=1.5;
+  bool m_skip_wave = false;
+  double m_eb_coeff = 1.5;
 
   CDF97 m_cdf;
   Conditioner m_conditioner;
@@ -677,7 +677,7 @@ auto sperr::SPECK_FLT::compress() -> RTNType
   else{//skip wave
     m_condi_bitstream=std::array<uint8_t, 17>{};
     auto b8=sperr::unpack_8_booleans(m_condi_bitstream[0]);
-    b8[2]=true;
+    b8[3]=true;
     m_condi_stream[0]=sperr::pack_8_booleans(b8);
     //auto rtn = m_encoder.take_data(std::move(m_val_buf), m_dims);
     //if (rtn != RTNType::Good)
@@ -794,7 +794,7 @@ auto sperr::SPECK_FLT::decompress(bool multi_res) -> RTNType
 
 
   auto b8=sperr::unpack_8_booleans(m_condi_stream[0]);
-  m_skip_wave=b8[2];
+  m_skip_wave=b8[3];
 
   if(!m_skip_wave){
 

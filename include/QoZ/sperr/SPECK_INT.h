@@ -94,7 +94,6 @@ class SPECK_INT {
   std::vector<uint64_t> m_LSP_new;
   Bitmask m_LSP_mask, m_LIP_mask, m_sign_array;
   Bitstream m_bit_buffer;
-  double m_eb_coeff=1.5;
 };
 
 };  // namespace sperr
@@ -147,10 +146,7 @@ void sperr::SPECK_INT<T>::set_budget(size_t bud)
   }
 }
 
-template <typename T>
-void sperr::SPECK3D::set_eb_coeff(const double & coeff){
-  m_eb_coeff=coeff;
-}
+
 
 template <typename T>
 auto sperr::SPECK_INT<T>::get_speck_num_bits(const void* buf) const -> uint64_t
