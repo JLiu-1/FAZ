@@ -93,6 +93,7 @@ char *SPERR_Compress(QoZ::Config &conf, T *data, size_t &outSize){//only support
         const auto chunks = sperr::dims_type{1024,1024,1024};//ori 256^3, to tell the truth this is not large enough for scale but I just keep it, maybe set it large later.
         const auto sperr_dims = sperr::dims_type{conf.dims[0],conf.dims[1],conf.dims[2]};
         compressor->set_dims_and_chunks(sperr_dims, chunks);
+        compressor->set_tolerance(conf.absErrorBound);
         /*
         if (std::is_same<T, double>::value)
             rtn = compressor.copy_data<double>(reinterpret_cast<const double*>(data), conf.num,
