@@ -489,8 +489,8 @@ namespace QoZ {
         int waveAutoFix=1;
         int conditioning=0;
         size_t meta_size=0;
-        sperr::vec8_type meta;
-        std::vector<sperr::vec8_type> block_metas;
+        std::array<uint8_t, 17> meta;
+        //std::vector< std::array<uint8_t, 17> > block_metas;
         int fixWave=-1;
         bool sperrWithoutWave=false;
         bool pyBind=true;
