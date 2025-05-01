@@ -60,9 +60,9 @@ class SPERR3D_OMP_C {
   bool m_skip_wave=false;
 
 
-#ifdef USE_OMP
-  size_t m_num_threads = 1;
 
+  size_t m_num_threads = 1;
+#ifdef USE_OMP
   // It turns out that the object of `SPECK3D_FLT` is not copy-constructible, so it's
   //    a little difficult to work with a container (std::vector<>), so we ask the
   //    container to store pointers (which are trivially constructible) instead.

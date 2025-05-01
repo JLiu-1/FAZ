@@ -260,7 +260,7 @@ auto sperr::SPERR3D_Stream_Tools::m_progressive_helper(const void* header_buf,
   // Finally, create a new header.
   //
   auto header_new = vec8_type(header.header_len);
-  header_new[0] = static_cast<uint8_t>(SPERR_VERSION_MAJOR);
+  header_new[0] = static_cast<uint8_t>(0);
   size_t pos = 1;
   auto b8 = sperr::unpack_8_booleans(u8p[pos]);
   b8[0] = true;  // Record that this is a portion of another complete bitstream.
@@ -286,5 +286,6 @@ auto sperr::SPERR3D_Stream_Tools::m_progressive_helper(const void* header_buf,
   std::get<1>(rtn_val) = std::move(header.chunk_offsets);
 
   return rtn_val;
+}
 
 #endif
