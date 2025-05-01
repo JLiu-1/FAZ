@@ -158,13 +158,10 @@ auto sperr::SPERR3D_OMP_C::compress(const T* buf, size_t buf_len) -> RTNType
     m_orig_is_float = true;
   else
     m_orig_is_float = false;
-  std::cout<<"000"<<std::endl;
   if (m_mode == sperr::CompMode::Unknown)
     return RTNType::CompModeUnknown;
-  std::cout<<"111"<<std::endl;
   if (buf_len != m_dims[0] * m_dims[1] * m_dims[2])
     return RTNType::WrongLength;
-  std::cout<<"222"<<std::endl;
 
   // First, calculate dimensions of individual chunk indices.
   const auto chunk_idx = sperr::chunk_volume(m_dims, m_chunk_dims);
@@ -192,7 +189,6 @@ auto sperr::SPERR3D_OMP_C::compress(const T* buf, size_t buf_len) -> RTNType
   for (size_t i = 0; i < num_chunks; i++) {
     auto& compressor = m_compressor;
 #endif
-    std::cout<<"letsgo"<<std::endl;
     // Gather data for this chunk, Setup compressor parameters, and compress!
     auto chunk = m_gather_chunk<T>(buf, m_dims, chunk_idx[i]);
     assert(!chunk.empty());
@@ -244,10 +240,8 @@ auto sperr::SPERR3D_OMP_C::get_encoded_bitstream() const -> vec8_type
   auto header = m_generate_header();
   assert(!header.empty());
   auto header_size = header.size();
-  std::cout<<"header "<<header_size<<std::endl;
   auto stream_size = std::accumulate(m_encoded_streams.cbegin(), m_encoded_streams.cend(), 0lu,
                                      [](size_t a, const auto& b) { return a + b.size(); });
-  std::cout<<"stream "<<stream_size<<std::endl;
   header.resize(header_size + stream_size);
 
   auto itr = header.begin() + header_size;
@@ -272,11 +266,7 @@ auto sperr::SPERR3D_OMP_C::m_generate_header() const -> sperr::vec8_type
   //
   auto chunk_idx = sperr::chunk_volume(m_dims, m_chunk_dims);
 
-  std::cout<<m_dims[2]<<std::endl;
-  std::cout<<m_chunk_dims[2]<<std::endl;
   const auto num_chunks = chunk_idx.size();
-  std::cout<<num_chunks<<std::endl;
-  std::cout<<m_encoded_streams.size()<<std::endl;
   assert(num_chunks != 0);
   if (num_chunks != m_encoded_streams.size())
     return header;
