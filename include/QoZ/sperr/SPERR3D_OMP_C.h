@@ -269,7 +269,12 @@ auto sperr::SPERR3D_OMP_C::m_generate_header() const -> sperr::vec8_type
   //  -- length of bitstream for each chunk   (4 x num_chunks)
   //
   auto chunk_idx = sperr::chunk_volume(m_dims, m_chunk_dims);
+
+  std::cout<<m_dims[2]<<std::endl;
+  std::cout<<m_chunk_dims[2]<<std::endl;
   const auto num_chunks = chunk_idx.size();
+  std::cout<<num_chunks<<std::endl;
+  std::cout<<m_encoded_streams.size()<<std::endl;
   assert(num_chunks != 0);
   if (num_chunks != m_encoded_streams.size())
     return header;

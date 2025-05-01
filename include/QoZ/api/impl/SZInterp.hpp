@@ -90,7 +90,7 @@ char *SPERR_Compress(QoZ::Config &conf, T *data, size_t &outSize){//only support
             compressor->set_skip_wave(true);
         auto rtn = sperr::RTNType::Good;
           
-        auto chunks = std::array<size_t,3>{1024,1024,1024};//ori 256^3, to tell the truth this is not large enough for scale but I just keep it, maybe set it large later.
+        const auto chunks = sperr::dims_type{1024,1024,1024};//ori 256^3, to tell the truth this is not large enough for scale but I just keep it, maybe set it large later.
         const auto sperr_dims = sperr::dims_type{conf.dims[0],conf.dims[1],conf.dims[2]};
         compressor->set_dims_and_chunks(sperr_dims, chunks);
         /*
