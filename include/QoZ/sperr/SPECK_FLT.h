@@ -157,7 +157,7 @@ void sperr::SPECK_FLT::set_skip_wave(const bool & skip){
   m_skip_wave=skip;
 }
 
-void sperr::SPERR3D_Compressor::set_eb_coeff(const double & coeff){
+void sperr::SPECK_FLT::set_eb_coeff(const double & coeff){
   m_eb_coeff=coeff;
 }
 
@@ -675,10 +675,11 @@ auto sperr::SPECK_FLT::compress() -> RTNType
     }
   }
   else{//skip wave
+    bool high_prec = false;
     m_condi_bitstream=std::array<uint8_t, 17>{};
     auto b8=sperr::unpack_8_booleans(m_condi_bitstream[0]);
     b8[3]=true;
-    m_condi_stream[0]=sperr::pack_8_booleans(b8);
+    m_condi_bitstream[0]=sperr::pack_8_booleans(b8);
     //auto rtn = m_encoder.take_data(std::move(m_val_buf), m_dims);
     //if (rtn != RTNType::Good)
      // return rtn;
@@ -688,11 +689,11 @@ auto sperr::SPECK_FLT::compress() -> RTNType
       // In fixed-rate mode, `param_q` is the wavelet coefficient of the largest magnitude.
       auto itr = std::max_element(m_vals_d.cbegin(), m_vals_d.cend(),
                                   [](auto a, auto b) { return std::abs(a) < std::abs(b); });
-      param_q = std::abs(*itr);
+      m_q = std::abs(*itr);
     }
 
-     FIXED_RATE_HIGH_PREC_LABEL:
-    m_q = m_estimate_q(param_q, high_prec);
+     FIXED_RATE_HIGH_PREC_LABEL_2:
+    m_q = m_estimate_q(m_q, high_prec);
     assert(m_q > 0.0);
     m_conditioner.save_q(m_condi_bitstream, m_q);
 
@@ -750,7 +751,7 @@ auto sperr::SPECK_FLT::compress() -> RTNType
       auto actual = std::get<2>(m_encoder)->encoded_bitstream_len() * size_t{8};
       if (actual < budget) {
         high_prec = true;
-        goto FIXED_RATE_HIGH_PREC_LABEL;
+        goto FIXED_RATE_HIGH_PREC_LABEL_2;
       }
     }
 
@@ -793,7 +794,7 @@ auto sperr::SPECK_FLT::decompress(bool multi_res) -> RTNType
   m_midtread_inv_quantize();
 
 
-  auto b8=sperr::unpack_8_booleans(m_condi_stream[0]);
+  auto b8=sperr::unpack_8_booleans(m_condi_bitstream[0]);
   m_skip_wave=b8[3];
 
   if(!m_skip_wave){

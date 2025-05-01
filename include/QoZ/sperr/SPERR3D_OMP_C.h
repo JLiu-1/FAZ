@@ -280,7 +280,7 @@ auto sperr::SPERR3D_OMP_C::m_generate_header() const -> sperr::vec8_type
   header.resize(header_size);
 
   // Version number
-  header[0] = static_cast<uint8_t>(SPERR_VERSION_MAJOR);
+  header[0] = static_cast<uint8_t>(0);
   size_t pos = 1;
 
   // 8 booleans:
