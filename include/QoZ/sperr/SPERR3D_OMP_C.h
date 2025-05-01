@@ -158,11 +158,13 @@ auto sperr::SPERR3D_OMP_C::compress(const T* buf, size_t buf_len) -> RTNType
     m_orig_is_float = true;
   else
     m_orig_is_float = false;
-
+  std::cout<<"000"<<std::endl;
   if (m_mode == sperr::CompMode::Unknown)
     return RTNType::CompModeUnknown;
+  std::cout<<"111"<<std::endl;
   if (buf_len != m_dims[0] * m_dims[1] * m_dims[2])
     return RTNType::WrongLength;
+  std::cout<<"222"<<std::endl;
 
   // First, calculate dimensions of individual chunk indices.
   const auto chunk_idx = sperr::chunk_volume(m_dims, m_chunk_dims);
