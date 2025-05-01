@@ -103,9 +103,9 @@ char *SPERR_Compress(QoZ::Config &conf, T *data, size_t &outSize){//only support
         compressor.set_tolerance(conf.absErrorBound);*/
         std::cout<<conf.num<<std::endl;
         if (std::is_same<T, double>::value)
-            compressor->compress(reinterpret_cast<const float*>(data), conf.num);
-        else
             compressor->compress(reinterpret_cast<const double*>(data), conf.num);
+        else
+            compressor->compress(reinterpret_cast<const float*>(data), conf.num);
         
         auto stream = compressor->get_encoded_bitstream();
         
