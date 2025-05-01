@@ -298,10 +298,10 @@ namespace QoZ {
             }
             write(conditioning, c);
             if(conditioning>0){
-                meta_size=meta.size();
+                //meta_size=meta.size();
                 //std::vector<uint8_t> temp_meta(meta.begin(),meta.end());
-                write(meta_size,c);
-                write(meta.data(),meta_size,c);
+                //write(meta_size,c);
+                write(meta.data(),17,c);
                
             }
 
@@ -376,11 +376,11 @@ namespace QoZ {
             read(conditioning, c);
             if(conditioning>0){
                // std::cout<<"dwad"<<std::endl;
-                read(meta_size,c);
+                //read(meta_size,c);
                 //std::cout<<meta_size<<std::endl;
-                std::vector<uint8_t> temp_meta(meta_size);
-                meta.resize(meta_size);
-                read(meta.data(),meta_size,c);
+                //std::vector<uint8_t> temp_meta(meta_size);
+                //meta.resize(meta_size);
+                read(meta.data(),17,c);
                // std::cout<<"dwad2"<<std::endl;
                 //std::copy(temp_meta.begin(),temp_meta.end(),meta.begin());
                 //std::cout<<"dwad3"<<std::endl;
