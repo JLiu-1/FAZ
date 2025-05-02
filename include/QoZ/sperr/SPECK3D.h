@@ -171,7 +171,7 @@ auto sperr::SPECK3D::encode() -> RTNType
   const auto max_coeff = *std::max_element(m_coeff_buf.begin(), m_coeff_buf.end());
   if (m_mode_cache == CompMode::FixedPWE || m_mode_cache == CompMode::FixedPSNR) {
     const auto terminal_threshold = m_estimate_finest_q(eb_coeff);
-    std::cout<<terminal_threshold<<std::endl;
+    //std::cout<<terminal_threshold<<std::endl;
     auto max_t = terminal_threshold;
     num_bitplanes = 1;
     while (max_t * 2.0 < max_coeff) {
