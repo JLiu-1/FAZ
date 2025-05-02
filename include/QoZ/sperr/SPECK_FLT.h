@@ -473,8 +473,7 @@ auto sperr::SPECK_FLT::m_midtread_quantize() -> RTNType
     m_uint_flag = UINTType::UINT64;
 
   m_instantiate_int_vec();
-
-  const auto total_vals = m_vals_d.size();
+   const auto total_vals = m_vals_d.size();
   std::visit([total_vals](auto&& vec) { vec.resize(total_vals); }, m_vals_ui);
   m_sign_array.resize(total_vals);
 
@@ -536,6 +535,7 @@ void sperr::SPECK_FLT::m_midtread_inv_quantize()
 
 auto sperr::SPECK_FLT::compress() -> RTNType
 {
+  m_eb_coeff = 1.5;//debug
   const auto total_vals = size_t(m_dims[0]) * m_dims[1] * m_dims[2];
   if (m_vals_d.empty() || m_vals_d.size() != total_vals)
     return RTNType::Error;
@@ -586,7 +586,7 @@ auto sperr::SPECK_FLT::compress() -> RTNType
     bool high_prec = false;
   FIXED_RATE_HIGH_PREC_LABEL:
     m_q = m_estimate_q(param_q, high_prec);
-    std::cout<<m_q<<std::endl;
+    //std::cout<<m_q<<std::endl;
     assert(m_q > 0.0);
     m_conditioner.save_q(m_condi_bitstream, m_q);
 
@@ -697,7 +697,7 @@ auto sperr::SPECK_FLT::compress() -> RTNType
 
      FIXED_RATE_HIGH_PREC_LABEL_2:
     m_q = m_estimate_q(m_q, high_prec);
-    std::cout<<m_q<<std::endl;
+    //std::cout<<m_q<<std::endl;
     assert(m_q > 0.0);
     m_conditioner.save_q(m_condi_bitstream, m_q);
 
