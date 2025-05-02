@@ -535,7 +535,6 @@ void sperr::SPECK_FLT::m_midtread_inv_quantize()
 
 auto sperr::SPECK_FLT::compress() -> RTNType
 {
-  m_eb_coeff = 1.5;//debug
   const auto total_vals = size_t(m_dims[0]) * m_dims[1] * m_dims[2];
   if (m_vals_d.empty() || m_vals_d.size() != total_vals)
     return RTNType::Error;
@@ -575,7 +574,7 @@ auto sperr::SPECK_FLT::compress() -> RTNType
 
     // Step 2: wavelet transform
     m_cdf.take_data(std::move(m_vals_d), m_dims);
-    std::cout<<m_dims[0]<<" "<<m_dims[1]<<" "<<m_dims[2]<<std::endl;
+    //std::cout<<m_dims[0]<<" "<<m_dims[1]<<" "<<m_dims[2]<<std::endl;
     m_wavelet_xform();
     m_vals_d = m_cdf.release_data();
 
