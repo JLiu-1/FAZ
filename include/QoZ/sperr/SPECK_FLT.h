@@ -586,6 +586,7 @@ auto sperr::SPECK_FLT::compress() -> RTNType
     bool high_prec = false;
   FIXED_RATE_HIGH_PREC_LABEL:
     m_q = m_estimate_q(param_q, high_prec);
+    std::cout<<m_q<<std::endl;
     assert(m_q > 0.0);
     m_conditioner.save_q(m_condi_bitstream, m_q);
 
@@ -696,6 +697,7 @@ auto sperr::SPECK_FLT::compress() -> RTNType
 
      FIXED_RATE_HIGH_PREC_LABEL_2:
     m_q = m_estimate_q(m_q, high_prec);
+    std::cout<<m_q<<std::endl;
     assert(m_q > 0.0);
     m_conditioner.save_q(m_condi_bitstream, m_q);
 
