@@ -2688,6 +2688,9 @@ char *SZ_compress_Interp_lorenzo(QoZ::Config &conf, T *data, size_t &outSize) {
                 coeffData=QoZ::external_wavelet_preprocessing<T,N>(data, conf.dims, conf.num, conf.wavelet, conf.pid, false, coeffs_size);
             conf.setDims(coeffs_size.begin(),coeffs_size.end());
 
+            if(conf.coeffTracking%2==1)
+                QoZ::writefile<T>("waved.faz.debug.dwt",  coeffData, conf.num);
+
 
         }
            
