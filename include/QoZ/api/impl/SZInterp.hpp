@@ -103,6 +103,7 @@ char *SPERR_Compress(QoZ::Config &conf, T *data, size_t &outSize){//only support
             
         char * outData=new char[stream.size()+conf.size_est()];
         outSize=stream.size();
+        std::cout<<outSize<<std::endl;
         memcpy(outData,stream.data(),stream.size());//maybe not efficient
         stream.clear();
         stream.shrink_to_fit();
