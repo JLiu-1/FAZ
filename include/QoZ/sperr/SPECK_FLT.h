@@ -545,7 +545,6 @@ auto sperr::SPECK_FLT::compress() -> RTNType
   m_has_outlier = false;
 
   if(!m_skip_wave){
-    std::cout<<"not skipping"<<std::endl;
 
     // Step 1: data goes through the conditioner
     //    Believe it or not, there are constant fields passed in for compression!
@@ -570,15 +569,12 @@ auto sperr::SPECK_FLT::compress() -> RTNType
       default:;  // So the compiler doesn't complain about missing switch cases.
     }
 
-    sperr::write_n_bytes("faz.aftercond", m_vals_d.size() * sizeof(double), m_vals_d.data());
-
     // Step 2: wavelet transform
     m_cdf.take_data(std::move(m_vals_d), m_dims);
     //std::cout<<m_dims[0]<<" "<<m_dims[1]<<" "<<m_dims[2]<<std::endl;
     m_wavelet_xform();
     m_vals_d = m_cdf.release_data();
 
-    sperr::write_n_bytes("faz.afterdwt", m_vals_d.size() * sizeof(double), m_vals_d.data());
 
 
     // Step 2.1: Estimate `m_q`, and store it as part of `m_condi_stream`.
@@ -683,7 +679,6 @@ auto sperr::SPECK_FLT::compress() -> RTNType
     }
   }
   else{//skip wave
-    std::cout<<"skipping"<<std::endl;
     bool high_prec = false;
     m_condi_bitstream=std::array<uint8_t, 17>{};
     auto b8=sperr::unpack_8_booleans(m_condi_bitstream[0]);
