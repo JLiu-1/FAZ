@@ -91,7 +91,7 @@ char *SPERR_Compress(QoZ::Config &conf, T *data, size_t &outSize){//only support
         auto rtn = sperr::RTNType::Good;
           
         const auto chunks = sperr::dims_type{1024,1024,1024};//ori 256^3, to tell the truth this is not large enough for scale but I just keep it, maybe set it large later.
-        const auto sperr_dims = sperr::dims_type{conf.dims[0],conf.dims[1],conf.dims[2]};
+        const auto sperr_dims = sperr::dims_type{conf.dims[2],conf.dims[1],conf.dims[0]};
         compressor->set_dims_and_chunks(sperr_dims, chunks);
         compressor->set_tolerance(conf.absErrorBound);
         /*
@@ -130,7 +130,7 @@ char *SPERR_Compress(QoZ::Config &conf, T *data, size_t &outSize){//only support
             compressor->set_skip_wave(true);
         auto rtn = sperr::RTNType::Good;
         //auto chunks = std::vector<size_t>{1024,1024,1024};//ori 256^3, to tell the truth this is not large enough for scale but I just keep it, maybe set it large later.
-        const auto sperr_dims = sperr::dims_type{conf.dims[0], conf.dims[1], 1ul};
+        const auto sperr_dims = sperr::dims_type{conf.dims[1], conf.dims[0], 1ul};//to test
         compressor->set_dims(sperr_dims);
 
 
@@ -215,7 +215,7 @@ void SPERR_Decompress(char *cmpData, size_t cmpSize, T *decData){//only supports
         auto decompressor = std::make_unique<sperr::SPECK2D_FLT>();
         auto dim2d = std::array<uint32_t, 2>{0, 0};
         std::memcpy(dim2d.data(), in_stream.data() + 2, sizeof(dim2d));
-        const auto sperr_dims = sperr::dims_type{dim2d[0], dim2d[1], 1ul};
+        const auto sperr_dims = sperr::dims_type{dim2d[1], dim2d[0], 1ul};
         decompressor->set_dims(sperr_dims);
         if (decompressor->use_bitstream(in_stream.data() + header_len, in_stream.size() - header_len) != sperr::RTNType::Good) {
             std::cerr << "Read compressed file error: "<< std::endl;
