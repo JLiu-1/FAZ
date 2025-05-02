@@ -1649,7 +1649,7 @@ double Tuning(QoZ::Config &conf, T *data){
         conf.sperr=2;//maybe selective
         conf.conditioning=1;//maybe selective
         conf.pyBind=1;//change later
-        //conf.fixWave=-1;//maybe selective
+        conf.fixWave=-1;//maybe selective
         conf.sperrWithoutWave=false;//maybe selective
         //profStride not included.
     }
@@ -1769,8 +1769,10 @@ double Tuning(QoZ::Config &conf, T *data){
             double threshold=3e-3;
             if(normvar>=threshold)
                 conf.waveletAutoTuning=1;
-            else
-                conf.fixWave=2;
+            else{
+                //conf.fixWave=2;//ori
+                conf.fixWave=1;//debug
+            }
         }
     }
     /*
