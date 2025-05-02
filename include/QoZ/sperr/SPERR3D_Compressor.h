@@ -253,8 +253,8 @@ auto sperr::SPERR3D_Compressor::compress() -> RTNType
     speck_budget = sperr::max_size;
   else
     speck_budget = m_bit_budget - m_condi_stream.size() * 8;
-  //m_encoder.set_eb_coeff(eb_coeff);
-  m_encoder.set_eb_coeff(1.5);//debug
+  m_encoder.set_eb_coeff(eb_coeff);
+  //m_encoder.set_eb_coeff(1.5);//debug
   //auto rtn = m_encoder.set_comp_params(speck_budget, m_target_psnr, m_target_pwe);
   // In the FixedPWE mode, in case there's custom filter, we scale the PWE tolerance
   auto speck_pwe = m_target_pwe;
