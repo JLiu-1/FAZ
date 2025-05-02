@@ -546,6 +546,7 @@ auto sperr::SPECK_FLT::compress() -> RTNType
   m_has_outlier = false;
 
   if(!m_skip_wave){
+    std::cout<<"not skipping"<<std::endl;
 
     // Step 1: data goes through the conditioner
     //    Believe it or not, there are constant fields passed in for compression!
@@ -675,6 +676,7 @@ auto sperr::SPECK_FLT::compress() -> RTNType
     }
   }
   else{//skip wave
+    std::cout<<"skipping"<<std::endl;
     bool high_prec = false;
     m_condi_bitstream=std::array<uint8_t, 17>{};
     auto b8=sperr::unpack_8_booleans(m_condi_bitstream[0]);
