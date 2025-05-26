@@ -173,12 +173,28 @@ namespace QoZ {
             */
 
             
-            if (wave_type==2)
-                wavetype="sym13";//rtms,hurricane,nyx,miranda
+            if (wave_type <= 2)
+                wavetype="sym13";//general miranda vx
             else if(wave_type==3)
-                wavetype="bior3.3";//qmcpack
+                wavetype="sym14";//rtm
             else if(wave_type==4)
-                wavetype="bior4.4";//scale
+                wavetype="sym20";//rtmnew
+            /*
+            else if(wave_type==5)
+                wavetype="sym8";
+            else if(wave_type==6)
+                wavetype="sym10";
+                */
+            else if(wave_type==5)
+                wavetype="bior6.8";///jhtdb miranda vx vy vz miranda general nyx
+            else if(wave_type==6)
+                wavetype="bior4.4";
+            else if(wave_type==7)
+                wavetype="bior3.3";//qmcpack
+            else if(wave_type==8)
+                wavetype="coif6";//miranda pres
+            else
+                wavetype="coif7";//miranda pres miranda density diff visco
            
             py::array_t<T> ori_data_py(conf.dims, data);
             py::array_t<T> dwt_data = pyModule.attr("dwt")(ori_data_py, wavetype,std::is_same<T, float>::value);
@@ -248,13 +264,30 @@ namespace QoZ {
             */
 
             
-            if (wave_type==2)
-                wavetype="sym13";//rtms,hurricane,nyx,miranda
+            if (wave_type <= 2)
+                wavetype="sym13";//general miranda vx
             else if(wave_type==3)
-                wavetype="bior3.3";//qmcpack
+                wavetype="sym14";//rtm
             else if(wave_type==4)
-                wavetype="bior4.4";//scale
-            //std::cout<<"i1"<<std::endl;
+                wavetype="sym20";//rtmnew
+            /*
+            else if(wave_type==5)
+                wavetype="sym8";
+            else if(wave_type==6)
+                wavetype="sym10";
+                */
+            else if(wave_type==5)
+                wavetype="bior6.8";///jhtdb miranda vx vy vz miranda general nyx
+            else if(wave_type==6)
+                wavetype="bior4.4";
+            else if(wave_type==7)
+                wavetype="bior3.3";//qmcpack
+            else if(wave_type==8)
+                wavetype="coif6";//miranda pres
+            else
+                wavetype="coif7";//miranda pres miranda density diff visco
+
+            
             py::array_t<T> dwt_data(conf.dims, data);
             py::array_t<float> idwt_data;
             //std::cout<<"i2"<<std::endl;
