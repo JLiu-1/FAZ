@@ -36,6 +36,7 @@ target_link_libraries(${PROJECT_NAME} INTERFACE OpenMP::OpenMP_CXX)
 
 option(QoZ_USE_BUNDLED_ZSTD "prefer the bundled version of Zstd" OFF)
 option(QoZ_DEBUG_TIMINGS "print debug timing information" ON)
+option( ENABLE_AVX2 "Enable AVX2 instruction set compilation" ON )
 
 if(FAZ_DEBUG_TIMINGS)
   target_compile_definitions(${PROJECT_NAME} INTERFACE FAZ_DEBUG_TIMINGS=1)
@@ -62,6 +63,18 @@ else()
   message("GSL not found.")
 endif()
 
+if(ENABLE_AVX2)
+  message(STATUS "AVX2 compilation enabled.")
+  target_compile_options(${PROJECT_NAME} INTERFACE
+                        "$<$<CXX_COMPILER_ID:MSVC>:/arch:AVX2>"
+                        "$<$<OR:$<CXX_COMPILER_ID:GNU>,$<CXX_COMPILER_ID:Clang>>:-mavx2;-mfma>")
+
+  if(NOT CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang|MSVC")
+    message(WARNING "Compiler '${CMAKE_CXX_COMPILER_ID}' might not explicitly support AVX2 flags. Please add them manually if needed.")
+  endif()
+else()
+  message(STATUS "AVX2 compilation disabled.")
+endif()
 
 add_subdirectory(test)
 
