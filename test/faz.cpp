@@ -214,6 +214,21 @@ void decompress(char *inPath, char *cmpPath, char *decPath,
 }
 
 int main(int argc, char *argv[]) {
+
+
+    py::scoped_interpreter guard{};
+
+    py::exec(R"(
+import sys
+print(">>> embedded Python info:")
+print("  executable:", sys.executable)
+print("  version   :", sys.version)
+print("  sys.path  :", sys.path)
+)");
+
+
+
+
     bool binaryOutput = true;
     int printCmpResults = 0;
     bool compression = false;
