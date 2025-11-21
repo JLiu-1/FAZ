@@ -38,27 +38,7 @@ class SPECK2D_INT_ENC final : public SPECK2D_INT<T> {
 
 };  // namespace sperr
 
-template <typename T>
-void sperr::SPECK2D_INT_ENC<T>::m_process_S(size_t idx1,
-                                            size_t idx2,
-                                            size_t& counter,
-                                            bool need_decide)
-{
-  auto& set = m_LIS[idx1][idx2];
-  assert(!set.is_pixel());
-  bool is_sig = true;
 
-  if (need_decide) {
-    is_sig = m_decide_S_significance(set);
-    m_bit_buffer.wbit(is_sig);
-  }
-
-  if (is_sig) {
-    counter++;
-    m_code_S(idx1, idx2);
-    set.make_empty();
-  }
-}
 
 template <typename T>
 void sperr::SPECK2D_INT_ENC<T>::m_process_S(size_t idx1,
@@ -157,14 +137,14 @@ auto sperr::SPECK2D_INT_ENC<T>::m_decide_I_significance() const -> bool
   //
   auto len = m_dims[0] - m_I.start_x;
   if (len < 16) {
-    for (auto y = 0; y < m_I.start_y; y++) {
+    for (auto y = 0u; y < m_I.start_y; y++) {
       first = m_coeff_buf.data() + y * m_dims[0] + m_I.start_x;
       if (std::any_of(first, first + len, [thld = m_threshold](auto v) { return v >= thld; }))
         return true;
     }
   }
   else {
-    for (auto y = 0; y < m_I.start_y; y++) {
+    for (auto y = 0u; y < m_I.start_y; y++) {
       first = m_coeff_buf.data() + y * m_dims[0] + m_I.start_x;
       if (sperr::any_ge(first, len, m_threshold))
         return true;
